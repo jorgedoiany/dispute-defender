@@ -1,0 +1,3 @@
+# Provisional: chosen for the T-002 spike. Confirm or replace in T-003.
+requests
+python-dotenv
