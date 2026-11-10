@@ -4,12 +4,14 @@
 One step per run. Loads `.env` into the environment, then uses PayPalClient.from_env(),
 which refuses any host other than api-m.sandbox.paypal.com. Prints one line per call;
 credentials, tokens, raw bodies and buyer details are never printed. `show` also prints
-the top-level key NAMES of the dispute JSON (no values) so T-004 can see the real shape.
+the top-level key NAMES of the dispute JSON (no values) so T-004 can see the real shape;
+with --nested-keys it also prints the key NAMES one level down in disputed_transactions[0],
+evidences[0], messages[0] and offer.
 
 Steps:
   token
   list
-  show              --dispute-id ID
+  show              --dispute-id ID [--nested-keys]
   provide-evidence  --dispute-id ID   (placeholder tracking, as in T-002)
   send-message      --dispute-id ID
 """
@@ -40,6 +42,8 @@ EVIDENCE = Evidence(
     tracking_info=[TrackingInfo(carrier_name="FEDEX", tracking_number="122533485")],
     notes="Sandbox test evidence with placeholder tracking; not a real shipment.",
 )
+# Fields whose key names `show --nested-keys` prints (first element for lists). Names only (T-004).
+NESTED_FIELDS = ("disputed_transactions", "evidences", "messages", "offer")
 
 
 def summary(dispute: Dispute) -> str:
@@ -71,10 +75,28 @@ def step_list(client: PayPalClient, _args: argparse.Namespace) -> None:
     print(f"[list] OK | {len(items)} dispute(s) {shown}")
 
 
+def nested_key_names(raw: dict, field: str) -> str:
+    """Key names (never values) of raw[field], or of its first element if it is a list."""
+    if field not in raw:
+        return "absent"
+    node = raw[field]
+    if isinstance(node, list):
+        if not node:
+            return "empty list"
+        node = node[0]
+    if not isinstance(node, dict):
+        return "not an object"
+    return ", ".join(sorted(node)) or "no keys"
+
+
 def step_show(client: PayPalClient, args: argparse.Namespace) -> None:
     show(client, "show", args.dispute_id)
-    keys = sorted(client.get_dispute_raw(args.dispute_id))
-    print(f"[show] top-level keys (names only): {', '.join(keys)}")
+    raw = client.get_dispute_raw(args.dispute_id)
+    print(f"[show] top-level keys (names only): {', '.join(sorted(raw))}")
+    if args.nested_keys:
+        for field in NESTED_FIELDS:
+            where = field if field == "offer" else f"{field}[0]"
+            print(f"[show] {where} keys (names only): {nested_key_names(raw, field)}")
 
 
 def step_action(client: PayPalClient, args: argparse.Namespace) -> None:
@@ -103,7 +125,13 @@ def build_parser() -> argparse.ArgumentParser:
     steps.add_parser("list").set_defaults(run=step_list)
     dispute = argparse.ArgumentParser(add_help=False)
     dispute.add_argument("--dispute-id", required=True, type=dispute_id_arg)
-    steps.add_parser("show", parents=[dispute]).set_defaults(run=step_show)
+    show_parser = steps.add_parser("show", parents=[dispute])
+    show_parser.add_argument(
+        "--nested-keys",
+        action="store_true",
+        help="also print key names (no values) under " + ", ".join(NESTED_FIELDS),
+    )
+    show_parser.set_defaults(run=step_show)
     for name in ("provide-evidence", "send-message"):
         steps.add_parser(name, parents=[dispute]).set_defaults(run=step_action)
     return parser

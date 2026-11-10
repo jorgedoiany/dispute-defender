@@ -8,6 +8,7 @@
 - ADR-005: Fallback flow if the sandbox spike fails (Superseded by ADR-007)
 - ADR-006: Open-source license (Accepted: MIT)
 - ADR-007: Go with Dispute Defender after the sandbox spike (Accepted)
+- ADR-008: Claim schema and deterministic verdict rules (Accepted)
 
 ## Entry template
 ### ADR-[number]: [title]
@@ -129,3 +130,27 @@ Go: continue with Dispute Defender on the PayPal Disputes API. The demo ends wit
 - Dispute statuses change on their own and UNDER_REVIEW can be short-lived, so the app must read the state back from PayPal rather than assume it.
 - Each sandbox dispute needs manual buyer steps in the browser, so evaluation data (T-007) is simulated and labelled as simulated.
 - "Accepted by PayPal" means the submission was accepted, not that the evidence would win a real case.
+
+### ADR-008: Claim schema and deterministic verdict rules
+- Date: 2026-11-10
+- Status: Accepted
+- Supersedes: none
+
+#### Context
+ADR-002 requires every claim in a draft to be checked by code before the merchant approves. T-004 needs a claim shape the model can produce (T-005) and rules that give the same verdict every time. The nested key names of `disputed_transactions[0]` were observed on two sandbox disputes in T-004 before the model was written; their value formats were confirmed afterwards (see Consequences).
+#### Decision
+- A claim has a `type`, a `value` and a claimed `source` (`paypal` or `merchant_record`).
+- Verdicts: `VERIFIED` (matches the source), `FLAGGED` (no data to check, no or wrong source, unsupported type, or a merchant record that is for a different transaction), `BLOCKED` (contradicts the source data, or the value is invalid).
+- The verifier makes no model or network calls. It uses Decimal for amounts and exact matching, except that carrier is compared trimmed and case-insensitively.
+- PayPal-backed types: `transaction_id`, `amount` (value and currency against `gross_amount`), `transaction_date` (the UTC calendar date of `create_time`) and `seller_protection` (against `seller_protection_eligible`). They require exactly one disputed transaction; otherwise they are FLAGGED.
+- Merchant-record types: `tracking_number` (exact) and `carrier`, checked against a `MerchantOrderRecord` passed in by the caller. Their reasons say "verified against merchant record", never that PayPal verified them. If the record's optional `transaction_id` differs from the dispute's `seller_transaction_id`, they are FLAGGED, never BLOCKED.
+- The dispute model takes only the seller-side transaction fields the verifier needs (plus `transaction_status`, with no rule yet). Buyer fields stay out.
+#### Alternatives
+- Ask the model whether a claim is true: not chosen; the check must not depend on the model (ADR-002).
+- Strict enums for type and source in the schema: not chosen, because an unknown type would then fail the whole draft instead of flagging one claim.
+- Compare dates in the merchant's time zone: not chosen for the MVP; no time zone is known. Near midnight a local date can be BLOCKED.
+#### Consequences
+- FLAGGED claims still need the merchant's judgment; T-006 decides how they are shown. BLOCKED claims cannot be sent (T-006).
+- Fewer claim types are supported than a full response would need; others are FLAGGED.
+- The live value formats of the transaction fields were confirmed on two sandbox disputes, one sample each (`PP-R-KXL-10197854` and `PP-R-HBV-10197617`, T-004): both passed the model, so `create_time` had a timezone, `gross_amount` parsed as money and `seller_protection_eligible` was a JSON boolean. Two samples do not prove PayPal's schema; a different format on another dispute would fail the dispute read at the boundary.
+- The verifier checks structured claims only. Any free text in the final response must be rendered from verified claims or treated as unverified; which of the two is decided in T-005/T-006.
