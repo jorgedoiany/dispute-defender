@@ -1,0 +1,4 @@
+# Test dependencies. Tests are offline: `responses` mocks every HTTP call.
+-r requirements.txt
+pytest==9.2.0
+responses==0.26.3

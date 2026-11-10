@@ -1,0 +1,11 @@
+{
+  "name": "INVALID_REQUEST",
+  "message": "Request is not well-formed, syntactically incorrect, or violates schema.",
+  "debug_id": "f41195223259c",
+  "details": [
+    {
+      "issue": "ACTION_NOT_ALLOWED_IN_CURRENT_DISPUTE_STATE",
+      "description": "FAKE-BUYER-NAME: action is not allowed in the current dispute state."
+    }
+  ]
+}

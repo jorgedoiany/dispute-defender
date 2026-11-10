@@ -10,10 +10,11 @@
 Read TASKS.md and PROGRESS.md. Consult DECISIONS.md for accepted choices. Project principles are in the Working rules below.
 
 ## Commands
-Verified on 2026-11-09 with Python 3.14 during T-002, unless marked TODO.
-- Install: `python3 -m venv .venv && .venv/bin/python -m pip install -r requirements.txt` (dependencies are provisional until T-003)
+Verified on 2026-11-09 with Python 3.14 (install and test commands re-verified with 3.14.7 in T-003), unless marked TODO.
+- Install: `python3 -m venv .venv && .venv/bin/python -m pip install -r requirements-dev.txt` (runtime only: `requirements.txt`)
 - Run locally: TODO: verify
-- Test: TODO: verify
+- Test: `.venv/bin/python -m pytest` (offline; no credentials or network needed)
+- Client smoke check: `.venv/bin/python scripts/smoke_client.py <step> [--dispute-id ID]`. Steps: `token`, `list`, `show`, `provide-evidence`, `send-message`. Reads `.env`; sandbox only. All five steps verified against the sandbox in T-003 (see PROGRESS.md).
 - Lint/typecheck/build: TODO: decide whether any are used, then verify
 - Sandbox spike: `.venv/bin/python scripts/spike_sandbox.py <step> [options]`. Reads `.env`; refuses any host other than `api-m.sandbox.paypal.com`. One step per run:
   - `token`, `create-order`, `capture --order-id ID`, `list`, `show --dispute-id ID`
@@ -23,8 +24,15 @@ Verified on 2026-11-09 with Python 3.14 during T-002, unless marked TODO.
 ## Structure
 Only paths confirmed in the brief are listed. Add others when they exist.
 - `scripts/spike_sandbox.py`: sandbox spike that decided the idea is viable (T-002, ADR-007)
-- `requirements.txt`: provisional dependencies until T-003
-- TODO: layout for the REST client, claim schema, verifier, drafter and web app (decide in T-003)
+- `scripts/smoke_client.py`: live sandbox check of the app's PayPal client, one step per run (T-003)
+- `dispute_defender/`: the app package
+  - `paypal/config.py`: `PayPalConfig`, `load_config()` from environment variables, sandbox host guard
+  - `paypal/errors.py`: `PayPalError` and subclasses; messages carry only HTTP status, name, issue codes and debug_id
+  - `paypal/models.py`: pydantic models for the fields the app uses (dispute id, status, stage, reason, amount, links) and the evidence input
+  - `paypal/client.py`: `PayPalClient` (`get_token`, `list_disputes`, `get_dispute`, `send_message`, `provide_evidence`)
+- `tests/`: offline pytest suite; `tests/fixtures/paypal/` holds hand-written payloads based on T-002 results
+- `requirements.txt` (runtime) and `requirements-dev.txt` (tests), pinned
+- TODO: layout for the claim schema, verifier, drafter and web app (decide in their tasks)
 
 ## Working rules
 - Keep changes within the current task and follow existing patterns.

@@ -6,7 +6,7 @@ A merchant opens a PayPal sandbox dispute, reviews a drafted response whose ever
 Target dates: core build Nov 9-10; README, license, video and submission Nov 11 (deadline Nov 12, 12:00 PT).
 
 ## Current task
-None started. Next: T-003.
+None started. Next: T-004.
 
 ## Backlog
 
@@ -34,13 +34,16 @@ None started. Next: T-003.
 
 ### T-003: PayPal REST client
 - Priority: P0
-- Status: Todo
+- Status: Done
 - Depends on: T-002
 - Acceptance criteria:
-  - [ ] Gets an OAuth token and calls list/show dispute, send-message and provide-evidence against the sandbox
-  - [ ] Responses are validated at the boundary; errors are raised explicitly
-  - [ ] Credentials come from environment variables only
-- Note: `requests` and `python-dotenv` in `requirements.txt` are provisional from the T-002 spike; confirm or replace them in this task.
+  - [x] Gets an OAuth token and calls list/show dispute, send-message and provide-evidence against the sandbox
+    - Seen live with `scripts/smoke_client.py` on sandbox disputes `PP-R-KXL-10197854` (all four calls) and `PP-R-HBV-10197617` (show only). Details in PROGRESS.md.
+  - [x] Responses are validated at the boundary; errors are raised explicitly
+    - Live responses passed the pydantic models. Error paths (PayPal 4xx/5xx, malformed or non-JSON bodies, network errors, redirects) are covered by offline tests only; no live error came up in T-003.
+  - [x] Credentials come from environment variables only
+    - `load_config()` reads `os.environ`; the smoke script loads `.env` into the environment first. Covered by offline tests.
+- Note: dependencies confirmed: `requests`, `python-dotenv` and `pydantic` (pinned in `requirements.txt`); `pytest` and `responses` in `requirements-dev.txt`.
 
 ### T-004: Claim schema and deterministic verifier
 - Priority: P0
@@ -69,6 +72,7 @@ None started. Next: T-003.
   - [ ] Blocked claims cannot be sent
   - [ ] Approving sends the response in the sandbox and the page shows the dispute's new state read back from PayPal
   - [ ] The final state shown is read back from PayPal after sending, never assumed; statuses change on their own and UNDER_REVIEW can be short-lived (T-002)
+- Note: `PayPalClient` caches its OAuth token until shortly before `expires_in` and does not retry on a 401 from an API call. If a token is revoked early, every call fails until it expires. For a long-running app, consider dropping the cached token on a 401 and retrying the call once (T-003).
 
 ### T-007: Small evaluation
 - Priority: P1
@@ -113,3 +117,4 @@ None started. Next: T-003.
 ## Done
 - T-001: Create the public repository. MIT `LICENSE` and the repo guides are on `main`; `.env` is untracked. Public visibility and the About license were confirmed by the author.
 - T-002: Sandbox spike. Go recorded in ADR-007. The "adjudicates" criterion was not met (see T-002 note).
+- T-003: PayPal REST client in `dispute_defender/paypal/`, with offline tests and a live sandbox smoke check.

@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "dispute_id": "PP-R-HBV-10197617",
+      "create_time": "2026-11-09T15:00:00.000Z",
+      "update_time": "2026-11-09T15:05:00.000Z",
+      "reason": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED",
+      "status": "WAITING_FOR_SELLER_RESPONSE",
+      "dispute_state": "REQUIRED_ACTION",
+      "dispute_life_cycle_stage": "INQUIRY",
+      "dispute_channel": "INTERNAL",
+      "links": [{"href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-HBV-10197617", "rel": "self", "method": "GET"}]
+    }
+  ],
+  "links": [{"href": "https://api-m.sandbox.paypal.com/v1/customer/disputes?page_size=20", "rel": "self", "method": "GET"}]
+}

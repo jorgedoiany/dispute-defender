@@ -1,3 +1,4 @@
-# Provisional: chosen for the T-002 spike. Confirm or replace in T-003.
-requests
-python-dotenv
+# Runtime dependencies. Confirmed in T-003 on Python 3.14.7.
+requests==2.34.2
+python-dotenv==1.2.4
+pydantic==2.14.3
