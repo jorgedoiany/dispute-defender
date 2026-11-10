@@ -67,6 +67,7 @@ None started. Next: T-005.
   - [ ] Given a dispute and its transaction data, Claude on Bedrock returns structured claims as JSON that the schema accepts
   - [ ] Invalid model output is rejected, not sent on
   - [ ] Model ID and AWS setup are recorded in AGENTS.md
+- Prerequisites (decided 2026-11-10, ADR-003): region `us-east-1`; primary model `us.anthropic.claude-sonnet-4-6`, secondary `us.anthropic.claude-haiku-4-5-20251001-v1:0`; auth through the AWS CLI default profile and the boto3 credential chain. Both models answered a minimal Converse call run by the author. The values are recorded in AGENTS.md and `.env.example`; the third criterion stays open until the drafter reads them and calls Bedrock.
 
 ### T-006: Approval page and send
 - Priority: P0

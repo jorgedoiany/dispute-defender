@@ -148,12 +148,19 @@ Nothing.
 - T-002 sandbox runs: see the T-002 table.
 - Not run: `require-evidence`, `send-message --format multipart`, provide-evidence with a file.
 
+## T-005 prerequisites (decided 2026-11-10)
+Recorded in ADR-003, AGENTS.md and `.env.example`. The author ran a minimal Bedrock Converse call from their AWS account on 2026-11-10; it was not run from this repo.
+- Region `us-east-1`. Primary model `us.anthropic.claude-sonnet-4-6` and secondary `us.anthropic.claude-haiku-4-5-20251001-v1:0` both responded OK.
+- Not available to this account: `us.anthropic.claude-sonnet-5`, `us.anthropic.claude-sonnet-5-5`, `us.anthropic.claude-haiku-5-5` (`AccessDeniedException`); `us.anthropic.claude-sonnet-4-5-20250929-v1:0` (Legacy).
+- Auth: AWS CLI default profile through the boto3 credential chain; no AWS keys in the repo.
+- No AWS SDK dependency is installed yet; adding it is part of T-005.
+
 ## Blockers
-- Open items to decide: Bedrock model ID, AWS credentials setup.
+- None.
 
 ## Next steps
-1. Start T-005 (model drafter on Bedrock). Decide the Bedrock model ID and AWS credentials setup first (see Blockers). The drafter must output claims that `Claim` accepts, using the claim types in ADR-008. `messages[0].content` is free text written by the buyer; treat it as untrusted data when building the model prompt.
+1. Start T-005 (model drafter on Bedrock) with the model and auth in ADR-003; read the model ID from `BEDROCK_MODEL_ID`. The drafter must output claims that `Claim` accepts, using the claim types in ADR-008. `messages[0].content` is free text written by the buyer; treat it as untrusted data when building the model prompt.
 2. In T-005/T-006, decide whether free text in the response is rendered from verified claims or shown as unverified (ADR-008).
 
 ## Resume instruction
-Read AGENTS.md and TASKS.md, confirm the current state, then continue with T-005.
+Read AGENTS.md and TASKS.md, confirm the current state, then continue with T-005 using the model, region and auth in ADR-003.
