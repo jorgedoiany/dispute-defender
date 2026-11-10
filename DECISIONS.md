@@ -63,13 +63,21 @@ Less autonomy; a clear place to measure errors that reach the send step.
 - Supersedes: none
 
 #### Context
-The project must call an AI model in code.
+The project must call an AI model in code. The model ID and credentials setup were left open on 2026-11-09 and completed on 2026-11-10 for T-005, after a minimal Converse call from the author's AWS account.
 #### Decision
-Use Claude on Amazon Bedrock. Model ID and credentials setup: TODO, to be recorded in AGENTS.md.
+Use Claude on Amazon Bedrock.
+- Region: `us-east-1`.
+- Primary model: `us.anthropic.claude-sonnet-4-6` (responded OK on 2026-11-10).
+- Secondary model, for the T-007 comparison: `us.anthropic.claude-haiku-4-5-20251001-v1:0` (responded OK on 2026-11-10).
+- Auth: the AWS CLI default profile through the standard boto3 credential chain. No AWS keys in the repo, ever.
+- Rationale: the safety comes from the deterministic verifier (ADR-002, ADR-008), not from the model, so a capable but cheaper model is enough.
 #### Alternatives
-Other model providers: not chosen.
+- Other model providers: not chosen.
+- Not available in this account on 2026-11-10: `us.anthropic.claude-sonnet-5`, `us.anthropic.claude-sonnet-5-5` and `us.anthropic.claude-haiku-5-5` (each returned `AccessDeniedException`); `us.anthropic.claude-sonnet-4-5-20250929-v1:0` (marked Legacy).
 #### Consequences
-Judges without AWS access cannot run the model path; see the replay mode task (T-010).
+- Judges without AWS access cannot run the model path; see the replay mode task (T-010).
+- Model IDs are config, not code: they come from `BEDROCK_MODEL_ID` and `BEDROCK_MODEL_ID_SECONDARY` (see `.env.example`), so a model can change without a code change.
+- Availability was checked from one account on one day; another account may see a different list.
 
 ### ADR-004: FastAPI with a simple HTML approval page
 - Date: 2026-11-09

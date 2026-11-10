@@ -4,6 +4,7 @@
 - App: Dispute Defender (working name)
 - Purpose and users: helps a PayPal merchant answer a dispute. An AI model drafts the response as structured claims, deterministic code verifies each claim against PayPal API data, and the merchant approves before anything is sent.
 - Stack (confirmed 2026-11-09, see DECISIONS.md): Python with a direct REST client for PayPal, a pipeline with structured model output, Claude on Amazon Bedrock, FastAPI with a simple HTML approval page.
+- Model (ADR-003): Claude on Amazon Bedrock in `us-east-1`. Primary `us.anthropic.claude-sonnet-4-6`; secondary `us.anthropic.claude-haiku-4-5-20251001-v1:0` for T-007. IDs are read from `BEDROCK_MODEL_ID` / `BEDROCK_MODEL_ID_SECONDARY`, never hard-coded. AWS credentials come from the AWS CLI profile (boto3 credential chain), never from the repo.
 - Environment: PayPal **sandbox only**. Never real money or real accounts.
 
 ## Start here
