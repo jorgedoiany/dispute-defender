@@ -6,30 +6,31 @@ A merchant opens a PayPal sandbox dispute, reviews a drafted response whose ever
 Target dates: core build Nov 9-10; README, license, video and submission Nov 11 (deadline Nov 12, 12:00 PT).
 
 ## Current task
-None started. Next: T-001.
+None started. Next: T-003.
 
 ## Backlog
 
 ### T-001: Create the public repository
 - Priority: P0
-- Status: Todo
+- Status: Done
 - Depends on: none
 - Acceptance criteria:
-  - [ ] A public GitHub repository exists with an open-source license visible in the About section (license choice recorded in DECISIONS.md)
-  - [ ] `.env` is listed in `.gitignore` and `.env.example` has no real values
-  - [ ] AGENTS.md, TASKS.md, PROGRESS.md, DECISIONS.md and CLAUDE.md are committed at the repo root
+  - [x] A public GitHub repository exists with an open-source license visible in the About section (license choice recorded in DECISIONS.md)
+  - [x] `.env` is listed in `.gitignore` and `.env.example` has no real values
+  - [x] AGENTS.md, TASKS.md, PROGRESS.md, DECISIONS.md and CLAUDE.md are committed at the repo root
 
 ### T-002: Sandbox spike (gate for the idea)
 - Priority: P0
-- Status: Todo
+- Status: Done (one criterion not met, see note)
 - Depends on: T-001
 - Acceptance criteria:
-  - [ ] `scripts/spike_sandbox.py` runs against the PayPal sandbox with the author's credentials
-  - [ ] It creates and captures an order with the sandbox buyer
-  - [ ] The buyer opens an "item not received" case (manually in the sandbox Resolution Center if the API cannot create it)
+  - [x] `scripts/spike_sandbox.py` runs against the PayPal sandbox with the author's credentials
+  - [x] It creates and captures an order with the sandbox buyer
+  - [x] The buyer opens an "item not received" case (manually in the sandbox Resolution Center if the API cannot create it)
   - [ ] It lists and shows the dispute, calls require-evidence, sends a message, provides evidence, and adjudicates
-  - [ ] The HTTP status and a short result for each step are written in PROGRESS.md
-  - [ ] A go / fallback decision is recorded in DECISIONS.md (fallback: authorize / capture / void flow)
+    - Not met. List, show, send-message and provide-evidence succeeded. `adjudicate` was called three times and refused each time with `ACTION_NOT_ALLOWED_IN_CURRENT_DISPUTE_STATE`; PayPal never offered its link. `require-evidence` was not called because PayPal never offered its link. Escalate was added and succeeded. Details in PROGRESS.md; decision in ADR-007.
+  - [x] The HTTP status and a short result for each step are written in PROGRESS.md
+  - [x] A go / fallback decision is recorded in DECISIONS.md (fallback: authorize / capture / void flow)
 
 ### T-003: PayPal REST client
 - Priority: P0
@@ -39,6 +40,7 @@ None started. Next: T-001.
   - [ ] Gets an OAuth token and calls list/show dispute, send-message and provide-evidence against the sandbox
   - [ ] Responses are validated at the boundary; errors are raised explicitly
   - [ ] Credentials come from environment variables only
+- Note: `requests` and `python-dotenv` in `requirements.txt` are provisional from the T-002 spike; confirm or replace them in this task.
 
 ### T-004: Claim schema and deterministic verifier
 - Priority: P0
@@ -66,6 +68,7 @@ None started. Next: T-001.
   - [ ] A FastAPI page shows the dispute, each claim with its verification result, and Approve / Reject
   - [ ] Blocked claims cannot be sent
   - [ ] Approving sends the response in the sandbox and the page shows the dispute's new state read back from PayPal
+  - [ ] The final state shown is read back from PayPal after sending, never assumed; statuses change on their own and UNDER_REVIEW can be short-lived (T-002)
 
 ### T-007: Small evaluation
 - Priority: P1
@@ -75,6 +78,7 @@ None started. Next: T-001.
   - [ ] About 20-30 disputes with seeded errors (wrong amount, date or tracking); simulated cases are labelled as simulated
   - [ ] Metric: wrong claims that reach the send step, model-only draft vs. draft with verifier
   - [ ] Result and its limits are written down
+- Note: evaluation data is simulated and labelled as such, because each sandbox dispute needs manual buyer steps in the browser (T-002, ADR-007).
 
 ### T-008: README, license check and secrets scan
 - Priority: P0
@@ -107,4 +111,5 @@ None started. Next: T-001.
 - Anything beyond the single dispute type used in the spike
 
 ## Done
-No verified completed work yet.
+- T-001: Create the public repository. MIT `LICENSE` and the repo guides are on `main`; `.env` is untracked. Public visibility and the About license were confirmed by the author.
+- T-002: Sandbox spike. Go recorded in ADR-007. The "adjudicates" criterion was not met (see T-002 note).

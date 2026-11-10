@@ -5,8 +5,9 @@
 - ADR-002: Pipeline with structured output, not a free-roaming agent (Accepted)
 - ADR-003: Claude on Amazon Bedrock as the model (Accepted)
 - ADR-004: FastAPI with a simple HTML approval page (Accepted)
-- ADR-005: Fallback flow if the sandbox spike fails (Proposed)
-- ADR-006: Open-source license (Proposed)
+- ADR-005: Fallback flow if the sandbox spike fails (Superseded by ADR-007)
+- ADR-006: Open-source license (Accepted: MIT)
+- ADR-007: Go with Dispute Defender after the sandbox spike (Accepted)
 
 ## Entry template
 ### ADR-[number]: [title]
@@ -85,7 +86,7 @@ Minimal interface; the design criterion depends on a clear, complete flow rather
 
 ### ADR-005: Fallback flow if the sandbox spike fails
 - Date: 2026-11-09
-- Status: Proposed
+- Status: Superseded (by ADR-007)
 - Supersedes: none
 
 #### Context
@@ -99,14 +100,32 @@ The AI role in the fallback is weaker.
 
 ### ADR-006: Open-source license
 - Date: 2026-11-09
-- Status: Proposed
+- Status: Accepted
 - Supersedes: none
 
 #### Context
 The official rules require a public repo with an open-source license visible in the About section.
 #### Decision
-License not chosen yet. To be decided in T-001.
+MIT License, in `LICENSE` at the repo root.
 #### Alternatives
 Any OSI-approved license.
 #### Consequences
 The choice must be visible in the repository's About section.
+
+### ADR-007: Go with Dispute Defender after the sandbox spike
+- Date: 2026-11-09
+- Status: Accepted
+- Supersedes: ADR-005
+
+#### Context
+ADR-005 proposed an authorize / capture / void fallback if the disputes flow could not run in the sandbox. The T-002 spike (results in PROGRESS.md) ran the flow on sandbox dispute `PP-R-HBV-10197617`, an "item not received" case opened manually by the sandbox buyer. Order create and capture, dispute list and show, provide-evidence (at both the INQUIRY and CHARGEBACK stages), send-message and escalate were all accepted, and each new state was read back from PayPal. The sandbox-only `adjudicate` call was refused three times with `ACTION_NOT_ALLOWED_IN_CURRENT_DISPUTE_STATE`, and PayPal never offered the `adjudicate` or `require-evidence` link.
+#### Decision
+Go: continue with Dispute Defender on the PayPal Disputes API. The demo ends with the merchant's response accepted and the dispute read back as UNDER_REVIEW, not with a settled dispute.
+#### Alternatives
+- Fallback flow from ADR-005 (authorize / capture / void): not needed, because the response path works in the sandbox.
+- Keep trying to settle disputes through `adjudicate`: not chosen, because it was refused three times in two different stages and the link was never offered.
+#### Consequences
+- The MVP shows a response sent and the dispute's new state confirmed by PayPal, but not a final outcome.
+- Dispute statuses change on their own and UNDER_REVIEW can be short-lived, so the app must read the state back from PayPal rather than assume it.
+- Each sandbox dispute needs manual buyer steps in the browser, so evaluation data (T-007) is simulated and labelled as simulated.
+- "Accepted by PayPal" means the submission was accepted, not that the evidence would win a real case.

@@ -10,16 +10,20 @@
 Read TASKS.md and PROGRESS.md. Consult DECISIONS.md for accepted choices. Project principles are in the Working rules below.
 
 ## Commands
-Nothing is verified yet; the repo has no code.
-- Install: TODO: verify once dependency files exist
+Verified on 2026-11-09 with Python 3.14 during T-002, unless marked TODO.
+- Install: `python3 -m venv .venv && .venv/bin/python -m pip install -r requirements.txt` (dependencies are provisional until T-003)
 - Run locally: TODO: verify
 - Test: TODO: verify
 - Lint/typecheck/build: TODO: decide whether any are used, then verify
-- Sandbox spike: `scripts/spike_sandbox.py` is planned (T-002). TODO: add the exact command after the script exists
+- Sandbox spike: `.venv/bin/python scripts/spike_sandbox.py <step> [options]`. Reads `.env`; refuses any host other than `api-m.sandbox.paypal.com`. One step per run:
+  - `token`, `create-order`, `capture --order-id ID`, `list`, `show --dispute-id ID`
+  - `provide-evidence`, `send-message`, `escalate`, `adjudicate --outcome SELLER_FAVOR|BUYER_FAVOR` (each with `--dispute-id ID`)
+  - Not yet run: `require-evidence` and `send-message --format multipart`. `adjudicate` runs but PayPal refused it in T-002 (see PROGRESS.md).
 
 ## Structure
 Only paths confirmed in the brief are listed. Add others when they exist.
-- `scripts/spike_sandbox.py`: sandbox spike that decides whether the idea is viable (planned, T-002)
+- `scripts/spike_sandbox.py`: sandbox spike that decided the idea is viable (T-002, ADR-007)
+- `requirements.txt`: provisional dependencies until T-003
 - TODO: layout for the REST client, claim schema, verifier, drafter and web app (decide in T-003)
 
 ## Working rules
