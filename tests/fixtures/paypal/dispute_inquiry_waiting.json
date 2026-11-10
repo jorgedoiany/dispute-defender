@@ -6,6 +6,10 @@
     {
       "buyer_transaction_id": "FAKE-BUYER-TXN-0000",
       "seller_transaction_id": "54X87564PT289050U",
+      "create_time": "2026-11-09T14:50:00.000Z",
+      "gross_amount": {"currency_code": "USD", "value": "10.00"},
+      "transaction_status": "COMPLETED",
+      "seller_protection_eligible": true,
       "buyer": {"name": "FAKE-BUYER-NAME", "email": "fake-buyer@example.invalid"},
       "seller": {"merchant_id": "FAKEMERCHANT0", "name": "Fake Test Store"}
     }

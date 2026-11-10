@@ -8,7 +8,7 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, StringConstraints
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, SecretStr, StrictBool, StringConstraints
 
 NonEmpty = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
@@ -53,6 +53,21 @@ class _HasLinks(_Response):
         return sorted({_norm_rel(link.rel) for link in self.links})
 
 
+class DisputedTransaction(_Response):
+    """Seller-side fields of one entry in `disputed_transactions`, used by the claim verifier (T-004).
+
+    Every field is optional so a missing one leads to a FLAGGED claim, not a failed read.
+    A field that is present but malformed still fails validation. Buyer fields
+    (`buyer`, `buyer_transaction_id`) and everything else are dropped here.
+    """
+
+    seller_transaction_id: NonEmpty | None = None
+    create_time: AwareDatetime | None = None
+    gross_amount: Money | None = None
+    transaction_status: str | None = None  # kept for later use; no verifier rule reads it yet
+    seller_protection_eligible: StrictBool | None = None
+
+
 class Dispute(_HasLinks):
     """One dispute as returned by GET /v1/customer/disputes/{id}."""
 
@@ -61,6 +76,7 @@ class Dispute(_HasLinks):
     stage: NonEmpty = Field(alias="dispute_life_cycle_stage")
     reason: NonEmpty
     amount: Money = Field(alias="dispute_amount")
+    transactions: list[DisputedTransaction] = Field(default_factory=list, alias="disputed_transactions")
 
 
 class DisputeListItem(_HasLinks):

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from decimal import Decimal
 
 import pytest
@@ -29,6 +30,55 @@ def test_dispute_drops_buyer_details() -> None:
     for value in FAKE_BUYER_VALUES:
         assert value not in dumped
     assert "disputed_transactions" not in dumped and "messages" not in dumped
+
+
+def test_dispute_parses_transaction_fields_for_verifier() -> None:
+    dispute = Dispute.model_validate(fixture("dispute_inquiry_waiting.json"))
+    assert len(dispute.transactions) == 1
+    txn = dispute.transactions[0]
+    assert txn.seller_transaction_id == "54X87564PT289050U"
+    assert txn.create_time == datetime(2026, 11, 9, 14, 50, tzinfo=timezone.utc)
+    assert txn.gross_amount is not None and txn.gross_amount.value == Decimal("10.00")
+    assert txn.gross_amount.currency_code == "USD"
+    assert txn.transaction_status == "COMPLETED"
+    assert txn.seller_protection_eligible is True
+
+
+def test_transaction_keeps_no_buyer_fields() -> None:
+    txn = Dispute.model_validate(fixture("dispute_inquiry_waiting.json")).transactions[0]
+    assert set(txn.model_dump()) == {
+        "seller_transaction_id", "create_time", "gross_amount", "transaction_status", "seller_protection_eligible",
+    }
+
+
+def test_missing_transaction_fields_become_none() -> None:
+    dispute = Dispute.model_validate(fixture("dispute_chargeback.json"))
+    txn = dispute.transactions[0]
+    assert (txn.create_time, txn.gross_amount, txn.transaction_status, txn.seller_protection_eligible) == (
+        None, None, None, None,
+    )
+
+
+def test_dispute_without_transactions_parses() -> None:
+    body = fixture("dispute_inquiry_waiting.json")
+    del body["disputed_transactions"]
+    assert Dispute.model_validate(body).transactions == []
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("gross_amount", {"currency_code": "USD", "value": "ten"}),
+        ("create_time", "2026-11-09T14:50:00"),  # no timezone
+        ("create_time", "yesterday"),
+        ("seller_protection_eligible", "true"),
+    ],
+)
+def test_malformed_transaction_field_fails(field: str, value: object) -> None:
+    body = fixture("dispute_inquiry_waiting.json")
+    body["disputed_transactions"][0][field] = value
+    with pytest.raises(ValidationError):
+        Dispute.model_validate(body)
 
 
 @pytest.mark.parametrize(
