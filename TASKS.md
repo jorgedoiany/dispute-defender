@@ -6,7 +6,7 @@ A merchant opens a PayPal sandbox dispute, reviews a drafted response whose ever
 Target dates: core build Nov 9-10; README, license, video and submission Nov 11 (deadline Nov 12, 12:00 PT).
 
 ## Current task
-T-007: Small evaluation (in progress on `feat/t-007-evaluation`).
+None started. Next: T-008.
 
 ## Backlog
 
@@ -96,18 +96,25 @@ T-007: Small evaluation (in progress on `feat/t-007-evaluation`).
 
 ### T-007: Small evaluation
 - Priority: P1
-- Status: In progress
+- Status: Done
 - Depends on: T-006
 - Acceptance criteria:
-  - [ ] About 20-30 disputes with seeded errors (wrong amount, date or tracking); simulated cases are labelled as simulated
-  - [ ] Metric: wrong claims that reach the send step, model-only draft vs. draft with verifier
-  - [ ] Result and its limits are written down
+  - [x] About 20-30 disputes with seeded errors (wrong amount, date or tracking); simulated cases are labelled as simulated
+    - 24 simulated scenarios in `evaluation/scenarios/`, each labelled `"simulated": true` (the loader refuses unlabelled files; `tests/test_eval_scenarios.py`). Seeded errors: buyer messages that push wrong values (I1-I3), local dates near midnight (D1-D2), a merchant record for another transaction (R2), missing facts and carrier variants; and Part B, 1,065 deliberately altered claims (wrong amount, date, transaction ID, tracking, carrier, seller protection, currency, source, unknown type, malformed values).
+  - [x] Metric: wrong claims that reach the send step, model-only draft vs. draft with verifier
+    - Live run on 2026-11-11 (144 calls, 0 errors, `evaluation/results.md`): M2 (no-verifier counterfactual) = 6 per model, M3 (incorrect claims VERIFIED or in a send plan) = 0 per model.
+    - The 6 are **one scenario** (R2: merchant record belonging to another transaction) x 3 repetitions x 2 claims (tracking number and carrier). They are `unsupported`, not model value errors: the model never sees the record's transaction ID. The verifier FLAGGED all of them.
+    - M2 is computed from the same outputs, not a separate experiment, and keeps schema validation, so it is conservative.
+  - [x] Result and its limits are written down
+    - `evaluation/results.md` (generated, labelled SIMULATED, with the freeze statement and a limitations section) and the T-007 section of PROGRESS.md.
+- Results (simulated data; not real-world accuracy):
+  - Model errors 0/390 claims for each model (`us.anthropic.claude-sonnet-4-6`, `us.anthropic.claude-haiku-4-5-20251001-v1:0`); 0/384 correct claims wrongly rejected; 0 drafts rejected; 0 disagreements between ground truth and verifier.
+  - Outputs were identical across the 3 repetitions in all 24 scenarios, so the effective sample is 24 distinct cases per model.
+  - Prompt injection (I1-I3): neither model claimed a manipulated value. This holds only for these simulated scenarios.
+  - Part B: 1,065 deliberately altered claims, 1,065 caught (expected by construction, since the faults were written against known rules). Known blind spot: an altered merchant record, 0 of 43 caught, 20 reached a send plan.
+  - Scenarios, scoring, prompt and pipeline were frozen before the first live call; no change was declared.
 - Note: evaluation data is simulated and labelled as such, because each sandbox dispute needs manual buyer steps in the browser (T-002, ADR-007).
-- Progress (2026-11-10): code, 24 simulated scenarios, Part B and the report are on `feat/t-007-evaluation`; the freeze is recorded. Part A (the live run, 144 billed calls) is **not run yet**, so no criterion is checked.
-  - Criterion 1: 24 simulated scenarios in `evaluation/scenarios/`, labelled and checked by `tests/test_eval_scenarios.py`. Seeded errors: Part B (1,192 offline fault cases) and the injection, date, record and carrier scenarios. To be checked after the live run.
-  - Criterion 2: M2 vs M3 come from the live run; the logic is tested offline in `tests/test_eval_scoring.py` and `tests/test_eval_report.py`.
-  - Criterion 3: `evaluation/results.md` has the limitations; Part A results pending.
-- Design (approved 2026-11-10): Part A, the real models draft claims for 24 simulated scenarios with known ground truth (3 repetitions, 2 models, 144 billed calls, only with `--confirm-spend`); Part B, offline fault injection into claims to measure what the verifier catches. Scoring definitions in ADR-011.
+- Design: ADR-011.
 
 ### T-008: README, license check and secrets scan
 - Priority: P0
@@ -164,3 +171,4 @@ T-007: Small evaluation (in progress on `feat/t-007-evaluation`).
 - T-004: Claim schema and deterministic verifier in `dispute_defender/claims/` (ADR-008), with offline tests and a live read-only check on two sandbox disputes. FLAGGED was exercised offline only.
 - T-005: Bedrock drafter in `dispute_defender/drafter/` (ADR-009), with offline tests and three live happy-path runs (two primary, one secondary). Invalid-output rejection is evidenced offline only; the live injection run was not done.
 - T-006: Approval page and send in `dispute_defender/response/` and `dispute_defender/web/` (ADR-010), with offline tests and a live dry run and live send in Chrome on sandbox dispute `PP-R-UXH-10198605`. "Blocked claims cannot be sent" is evidenced offline only.
+- T-007: Small evaluation on 24 simulated scenarios (ADR-011): live Part A (144 Bedrock calls, 0 model errors, M2 = 6 per model all from R2's unsupported claims, M3 = 0) and offline Part B (1,065 of 1,065 altered claims caught; altered merchant record is a known blind spot). Simulated data; not real-world accuracy.
