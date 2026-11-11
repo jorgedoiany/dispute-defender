@@ -4,7 +4,11 @@ Dispute Defender helps a PayPal merchant answer an "item not received" dispute. 
 
 **Flow:** Claude on Amazon Bedrock drafts structured claims → deterministic code verifies each claim against PayPal dispute data or the merchant record → the merchant reviews and approves on a local web page → the evidence is sent to the PayPal sandbox (`provide-evidence`) → the dispute's new state is read back from PayPal and shown.
 
-**Measured result (simulated data):** on 24 simulated scenarios, each model made 0 claim errors in 390 claims, and no incorrect claim was marked VERIFIED. A wrong merchant record is not caught. See [Evaluation results](#evaluation-results-simulated-data). Accuracy on real disputes was not measured.
+**Measured result (simulated data):** on 24 simulated scenarios, each model made 0 claim errors in 390 claims, and no incorrect claim was marked VERIFIED. Baseline comparison: without the verifier, 6 incorrect claims per model would have been sent, all from one simulated scenario where the merchant record belongs to another transaction (counted from the same model outputs). With the verifier, 0 reached a send plan. This is one scenario, not a rate. A wrong merchant record is not caught. See [Evaluation results](#evaluation-results-simulated-data). Accuracy on real disputes was not measured.
+
+**Live sandbox run (a single run, T-006, 2026-11-10):** the full path ran once end to end on sandbox dispute `PP-R-UXH-10198605`. PayPal accepted the provide-evidence call. The state read back from PayPal was `UNDER_REVIEW` at 02:14:36 UTC and `WAITING_FOR_BUYER_RESPONSE` at 02:19:00 UTC, with no call from the app in between. "Accepted" means PayPal took the submission; it does not show that the evidence would win a case.
+
+Built from scratch during the submission period; the first commit is dated 2026-11-09.
 
 <!-- SCREENSHOT: draft-page-verdicts -->
 
@@ -60,8 +64,9 @@ Full report: [`evaluation/results.md`](evaluation/results.md). Scoring definitio
 
 How to read it:
 - **The effective sample is 24 distinct cases per model, not 72.** Outputs were identical across the 3 repetitions in all 24 scenarios.
-- **M2 = 6 per model are not model errors.** M2 counts incorrect claims that would have been sent with no verifier. It is computed from the same outputs, not from a separate experiment. All 6 come from one scenario: R2, where the merchant record belongs to another transaction. That is 3 repetitions × 2 claims (tracking number and carrier). They are *unsupported* claims: the model never sees the record's transaction ID. The verifier FLAGGED all 6 and none reached a send plan.
+- **The 6 incorrect claims per model that would have been sent without the verifier are not model errors.** They are counted from the same outputs, not from a separate experiment. All 6 come from one scenario: R2, where the merchant record belongs to another transaction. That is 3 repetitions × 2 claims (tracking number and carrier). They are *unsupported* claims: the model never sees the record's transaction ID. The verifier FLAGGED all 6 and none reached a send plan.
 - Scenarios, scoring, prompt and pipeline were frozen (hashed) at 03:57:46 UTC, before the first live call at 04:08:13 UTC. All 144 calls ran with the frozen hashes, and no change was declared after the results were seen ([`evaluation/DECLARED_CHANGES.md`](evaluation/DECLARED_CHANGES.md)).
+- Time and cost: the 144 calls ran one after another. The first started at 04:08:13 UTC and the last at 04:11:33 UTC (run window in `results.md`; each call is timestamped before it runs, so the last call's duration is not included). Per-call latency and dollar cost were not recorded.
 - Prompt injection: in the three injection scenarios, neither model claimed a manipulated value. This holds only for these simulated scenarios and author-written injections.
 
 **Part B: offline fault injection** (1,192 cases on the same 24 scenarios, no model call). Most cases alter one correct claim and run it through the real verifier and send gate. The `tool_input` cases instead hand a faulty tool call to the real drafter validation. 84 cases are correct values that must not be rejected (82 equivalent values, 2 local dates).
@@ -129,6 +134,8 @@ PayPal GET dispute ─► prompt (fact allowlist + buyer message as untrusted te
 - If the send times out or PayPal answers 5xx, the page says the outcome is unknown and asks the merchant to check the state before retrying. No automatic retry.
 
 ## Run it for real (PayPal sandbox)
+
+No shared credentials are provided. The no-credentials path is [replay mode](#try-it-without-credentials-replay-mode); the real path needs your own PayPal sandbox app and Bedrock access.
 
 Requirements:
 - Python 3.14. Verified with 3.14.7; other versions were not tested.
