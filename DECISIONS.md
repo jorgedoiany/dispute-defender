@@ -10,6 +10,7 @@
 - ADR-007: Go with Dispute Defender after the sandbox spike (Accepted)
 - ADR-008: Claim schema and deterministic verdict rules (Accepted)
 - ADR-009: Bedrock drafter returns claims only, through a forced tool (Accepted)
+- ADR-010: Send path: VERIFIED-only rendering, re-verify on approve, local dry-by-default app (Accepted)
 
 ## Entry template
 ### ADR-[number]: [title]
@@ -190,3 +191,45 @@ ADR-002 says the model drafts structured claims and code checks them; ADR-003 ch
 - Fencing buyer messages reduces prompt-injection risk but cannot rule it out. Safety rests on the schema, the verifier, rendering only VERIFIED claims and merchant approval. No live run has put an injection in front of the real model; offline tests show that manipulated claims are blocked or flagged.
 - A VERIFIED claim means the model copied a value that matches PayPal or the merchant record. It says nothing about whether the response would win the dispute. Model accuracy is measured in T-007.
 - Every live drafter run is a billed Bedrock call.
+
+### ADR-010: Send path: VERIFIED-only rendering, re-verify on approve, local dry-by-default app
+- Date: 2026-11-10
+- Status: Accepted
+- Supersedes: none
+
+#### Context
+T-006 adds the approval page and the only path that writes to PayPal on the merchant's behalf. ADR-009 decided that the text sent to PayPal is rendered by a template from VERIFIED claims only and left the template to T-006. PROGRESS.md "Next steps" (end of T-005) suggested that FLAGGED claims could be sent if the merchant confirmed each one; that is replaced here. Facts from the sandbox that shape the gate: provide-evidence was accepted only when PayPal offered the `provide_evidence` link (T-002, T-003); `allowed_response_options` was present in states where that link was not offered, and its content was never inspected; only carrier `FEDEX` has been sent as `carrier_name`, which PayPal documents as an enum.
+#### Decision
+- **What can be sent.** Only VERIFIED claims reach the response. FLAGGED and BLOCKED claims are shown to the merchant with their reasons but never rendered or sent, and the merchant cannot override a verdict.
+- **Renderer.** A pure function `render_notes(results)` in `dispute_defender/response/render.py`. One sentence per VERIFIED claim, in this fixed order, joined with a single space:
+  1. `The disputed payment is PayPal transaction {id}.`
+  2. `The transaction amount was {value} {currency}.`
+  3. `The transaction was made on {date} (UTC).`
+  4. `PayPal lists this transaction as eligible for Seller Protection.` (only if the claim is VERIFIED and its value is `true`)
+  5. `According to our records, the order was shipped with {carrier}, tracking number {tracking}.` (only if both tracking number and carrier are VERIFIED)
+
+  It returns `None` (nothing to send) when no claim is VERIFIED, when two VERIFIED claims share a type, or when no sentence results.
+- **Send gate.** A pure function `prepare_send(dispute, results, shown_hash)` in `dispute_defender/response/send.py` returns a send plan or a refusal with a reason. It refuses when: the freshly read dispute does not offer the `provide_evidence` link; the renderer returns `None`; the tracking number or carrier is not VERIFIED; the carrier is not in the fixed carrier list; the notes exceed 2,000 characters; or the SHA-256 of the notes differs from the hash of the text the merchant was shown. The gate uses the link only. `allowed_response_options` is parsed (key names only) and shown for information; it is never a condition.
+- **Payload.** `PROOF_OF_FULFILLMENT` with `tracking_info` built from the VERIFIED claim values (never straight from the form) and the rendered notes. No files.
+- **Carrier list.** Fixed, `FEDEX` only. Other carriers need their PayPal `carrier_name` enum value checked before they are added.
+- **Approve re-verifies.** Approve reads the dispute again, gates on the link before any model call, drafts, verifies and renders again on the server, and sends only if the new text's hash equals the hash the page showed. Verdicts are never read from the browser. On a mismatch nothing is sent and the new draft is shown.
+- **Send mode.** `DISPUTE_DEFENDER_SEND_MODE`: `dry` by default and for any value other than `live`. Dry mode runs every step except the provide-evidence POST, and every page says which mode is on.
+- **Local app.** Bound to `127.0.0.1` only, with a trusted-host check (`127.0.0.1`, `localhost`). Form posts carry an HMAC CSRF token (per-process random key, 15-minute expiry, single use). Templates autoescape. No persistence: no database, files or sessions.
+- **After sending**, the page shows the state read back from PayPal with the read time, never an assumed state.
+#### Alternatives
+- Let the merchant confirm FLAGGED claims into the response: not chosen; a FLAGGED claim was not checked, and the merchant's click does not check it.
+- Gate on `allowed_response_options` too: not chosen; its content was never observed, and it was present where provide-evidence was not offered, so it could refuse every send.
+- Send the text approved in the browser instead of re-rendering: not chosen; the browser is not trusted for verdicts or text. The hash only confirms the merchant saw the same text.
+- Free-text carrier: not chosen; `carrier_name` is an enum and only `FEDEX` is proven.
+- Retry once after a 401 with a new token: moved to its own backlog task (T-011).
+#### Consequences
+- The response is short and factual; anything the verifier cannot check is left out.
+- Approve costs a second billed Bedrock call, and a model that answers differently makes the merchant approve again.
+- Only `FEDEX` shipments can be sent until more carriers are checked.
+- PayPal's limit on `notes` length and its acceptance of this text are unverified until the live run.
+- A sandbox dispute in `WAITING_FOR_SELLER_RESPONSE` with the `provide_evidence` link is needed for the live run; the two known disputes did not offer it at their last read.
+#### Notes after implementation (2026-11-10)
+- **Check order.** The send gate checks, in this order: the `provide_evidence` link; the tracking number and carrier each VERIFIED exactly once; the carrier in the fixed list; the renderer's output; the 2,000-character limit; the hash. Tracking, carrier and the carrier list are checked before rendering, so an unsupported carrier gets its own refusal reason instead of "nothing to send". The renderer writes the carrier as its canonical list value (`FEDEX`), the same value the payload sends, and writes no shipping sentence for a carrier outside the list.
+- **Referrer-Policy.** The app sends `Referrer-Policy: same-origin`, not `no-referrer`. With `no-referrer`, browsers serialize the `Origin` of the page's own form POSTs as `null` (Fetch spec), and the Origin check refused the merchant's Draft click with 403. A real Chrome run found this; the TestClient tests had not. `same-origin` makes the app's own posts carry the real origin and still sends nothing to other sites. The signed single-use token, the Host allowlist and the refusal of foreign and `null` origins are unchanged.
+- **Unknown send outcome.** If the provide-evidence POST times out, the connection drops, PayPal answers 5xx or an unreadable 2xx, or an unexpected error occurs, the page says the outcome is unknown and to check the dispute's state before retrying. It never says nothing was sent. A 4xx keeps the "rejected" wording. No retry is offered, and the approve token is single use.
+- **`allowed_response_options`.** In the T-006 live run it held only `accept_claim` while the `provide_evidence` link was offered and provide-evidence was accepted. This confirms the decision to gate on the link only.

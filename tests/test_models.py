@@ -198,3 +198,28 @@ def test_evidence_payload_matches_spike_shape() -> None:
 def test_invalid_evidence_is_rejected(kwargs: dict) -> None:
     with pytest.raises(ValidationError):
         Evidence.model_validate(kwargs)
+
+
+# allowed_response_options: key names only, for display (T-006, ADR-010)
+
+
+def test_response_option_names_absent_gives_empty_list() -> None:
+    assert Dispute.model_validate(fixture("dispute_inquiry_waiting.json")).response_option_names == []
+
+
+def test_response_option_names_are_sorted_key_names_only() -> None:
+    body = fixture("dispute_inquiry_waiting.json")
+    body["allowed_response_options"] = {
+        "make_offer": {"offer_types": ["REFUND"]},
+        "accept_claim": {"accept_claim_types": ["REFUND"]},
+    }
+    dispute = Dispute.model_validate(body)
+    assert dispute.response_option_names == ["accept_claim", "make_offer"]
+    assert "REFUND" not in repr(dispute)
+
+
+@pytest.mark.parametrize("value", [None, [], "accept_claim", 3, ["accept_claim"]])
+def test_response_option_names_other_shapes_never_fail_the_read(value: object) -> None:
+    body = fixture("dispute_inquiry_waiting.json")
+    body["allowed_response_options"] = value
+    assert Dispute.model_validate(body).response_option_names == []

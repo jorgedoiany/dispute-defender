@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Dispute Defender{% endblock %} | Dispute Defender</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; color: #1a1a1a; background: #fafafa; }
+  main { max-width: 960px; margin: 0 auto; padding: 16px; }
+  .banner { padding: 10px 16px; font-weight: 700; text-align: center; }
+  .banner.dry { background: #fff3c4; color: #5c4300; }
+  .banner.live { background: #b00020; color: #fff; }
+  table { border-collapse: collapse; width: 100%; margin: 8px 0 16px; }
+  th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+  th { background: #eee; }
+  .VERIFIED { color: #0a6b2d; font-weight: 700; }
+  .FLAGGED { color: #8a5a00; font-weight: 700; }
+  .BLOCKED { color: #b00020; font-weight: 700; }
+  .box { border: 1px solid #ccc; background: #fff; padding: 12px; margin: 12px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .refusal, .notice { border-left: 4px solid #b00020; background: #fff; padding: 8px 12px; margin: 12px 0; }
+  .ok { border-left: 4px solid #0a6b2d; background: #fff; padding: 8px 12px; margin: 12px 0; }
+  .muted { color: #555; font-size: 0.9em; }
+  button { padding: 8px 16px; font-size: 1em; }
+  label { display: block; margin: 8px 0; }
+</style>
+</head>
+<body>
+{% if live %}
+<div class="banner live" role="status">LIVE SANDBOX SEND: approving sends evidence to the PayPal sandbox</div>
+{% else %}
+<div class="banner dry" role="status">DRY RUN: nothing will be sent</div>
+{% endif %}
+<main>
+<p class="muted"><a href="/">All disputes</a> · PayPal sandbox only · model {{ model_id }}</p>
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

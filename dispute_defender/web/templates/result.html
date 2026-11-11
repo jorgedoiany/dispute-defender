@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Result for {{ before.dispute_id }}{% endblock %}
+{% block content %}
+<h1>Result for {{ before.dispute_id }}</h1>
+{% if sent %}
+<div class="ok">Sent to the PayPal sandbox. PayPal accepted the evidence (this does not mean the dispute is won).</div>
+{% else %}
+<div class="notice">Dry run: nothing was sent. Every check passed; this is what would have been sent.</div>
+{% endif %}
+
+<h2>{% if sent %}What was sent{% else %}What would have been sent{% endif %}</h2>
+<table>
+  <tr><th>Evidence type</th><td>PROOF_OF_FULFILLMENT</td></tr>
+  <tr><th>Carrier</th><td>{{ carrier }}</td></tr>
+  <tr><th>Tracking number</th><td>{{ tracking }}</td></tr>
+</table>
+<div class="box">{{ notes }}</div>
+
+<h2>Dispute state read back from PayPal</h2>
+<p class="muted">Before approving: {{ before.status }} / {{ before.stage }}.</p>
+{% if after %}
+<p><strong>Read back from PayPal at {{ read_at }}{% if not sent %} (not changed by this run){% endif %}:</strong></p>
+<table>
+  <tr><th>Status</th><td>{{ after.status }}</td></tr>
+  <tr><th>Stage</th><td>{{ after.stage }}</td></tr>
+  <tr><th>Actions PayPal offers (links)</th><td>{{ after.links | join(", ") or "-" }}</td></tr>
+</table>
+<p class="muted">Statuses change on their own; UNDER_REVIEW can be short-lived. <a href="/disputes/{{ before.dispute_id }}/state">Refresh state</a></p>
+{% else %}
+<div class="refusal">Could not read the state back from PayPal{% if sent %} (the evidence WAS sent){% endif %}: {{ readback_error }}. <a href="/disputes/{{ before.dispute_id }}/state">Try again</a></div>
+{% endif %}
+{% endblock %}

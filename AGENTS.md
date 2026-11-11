@@ -13,8 +13,14 @@ Read TASKS.md and PROGRESS.md. Consult DECISIONS.md for accepted choices. Projec
 ## Commands
 Verified on 2026-11-09 with Python 3.14 (install and test commands re-verified with 3.14.7 in T-003), unless marked TODO.
 - Install: `python3 -m venv .venv && .venv/bin/python -m pip install -r requirements-dev.txt` (runtime only: `requirements.txt`)
-- Run locally: TODO: verify
-- Test: `.venv/bin/python -m pytest` (offline; no credentials or network needed; AWS env, profile files and botocore's HTTP send are blocked in `tests/conftest.py`). Re-verified in T-005 on 2026-11-10, including the drafter and Bedrock client tests.
+- Run locally (dry run, the default): `.venv/bin/python -m dispute_defender.web [--port N]`, then open `http://127.0.0.1:8000`. Binds to 127.0.0.1 only (no host option). Reads `.env` without overriding variables already set in the shell, and the AWS CLI profile. Each Draft and each Approve is **one billed Bedrock call**. Dry run does every step except the provide-evidence POST. Verified in Chrome on 2026-11-10 (T-006).
+- Run locally, live sandbox send: `DISPUTE_DEFENDER_SEND_MODE=live .venv/bin/python -m dispute_defender.web`. Approve then sends provide-evidence to the PayPal sandbox; every page shows the LIVE SANDBOX SEND banner. Any value other than `live` means dry. Verified with one live send on 2026-11-10 (T-006).
+- Make a sandbox dispute that can be answered (manual buyer steps; one step per run, check the output before the next):
+  1. `.venv/bin/python scripts/spike_sandbox.py create-order`, then open the printed link and approve as the sandbox buyer.
+  2. `.venv/bin/python scripts/spike_sandbox.py capture --order-id ID`
+  3. As the sandbox buyer, in the sandbox Resolution Center, report "item not received" for that payment.
+  4. `.venv/bin/python scripts/spike_sandbox.py list` until the dispute appears, then `show --dispute-id ID` until it is `WAITING_FOR_SELLER_RESPONSE` with the `provide-evidence` link (in T-006 it was first `UNDER_REVIEW`, then changed a few minutes later).
+- Test: `.venv/bin/python -m pytest` (offline; no credentials or network needed; AWS env, profile files and botocore's HTTP send are blocked in `tests/conftest.py`). Re-verified in T-006 on 2026-11-10, including the renderer, send gate, web app and CSRF tests.
 - Client smoke check: `.venv/bin/python scripts/smoke_client.py <step> [--dispute-id ID]`. Steps: `token`, `list`, `show`, `provide-evidence`, `send-message`. Reads `.env`; sandbox only. All five steps verified against the sandbox in T-003 (see PROGRESS.md). `show --nested-keys` also prints key names (no values) one level down in `disputed_transactions[0]`, `evidences[0]`, `messages[0]` and `offer`; verified in T-004.
 - Verifier smoke check: `.venv/bin/python scripts/smoke_verifier.py --dispute-id PP-R-KXL-10197854|PP-R-HBV-10197617`. Read only (GET); runs fixed test claims through `verify_claims` and prints verdicts and reasons only. Reads `.env`; sandbox only. Verified on both disputes in T-004.
 - Drafter smoke check: `.venv/bin/python scripts/smoke_drafter.py --dispute-id ID [--model primary|secondary] [--no-record]`. One PayPal sandbox GET, **one billed Bedrock Converse call**, then the verifier; nothing is sent to PayPal or the buyer. Reads `.env` and the AWS CLI profile. Prints verdicts, model ID, token counts and claim values cut to 60 characters; never the prompt, buyer message text or credentials. Exit 0 ok, 1 error, 2 draft rejected. Verified live on 2026-11-10 (primary on both sandbox disputes, secondary on one).
@@ -44,9 +50,20 @@ Only paths confirmed in the brief are listed. Add others when they exist.
     - `bedrock.py`: `BedrockModelClient` (Converse, forced tool, retry on throttling only)
     - `drafter.py`: `draft_claims()` and output validation (`DraftRejected`)
     - `config.py`, `errors.py`: env config and typed errors with safe messages
+  - `response/` (ADR-010):
+    - `render.py`: `render_notes()`, the fixed template that writes the response text from VERIFIED claims only
+    - `send.py`: `prepare_send()` send gate (`SendPlan` or `Refusal`), `check_dispute_sendable()`, `notes_hash()`
+    - `carriers.py`: the fixed carrier list (`FEDEX` only) and `canonical_carrier()`
+  - `web/` (ADR-004, ADR-010):
+    - `app.py`: `create_app()`, the FastAPI routes, error pages and security headers
+    - `csrf.py`: single-use HMAC CSRF tokens bound to dispute and purpose
+    - `forms.py`: tracking and carrier input to `MerchantOrderRecord`
+    - `views.py`: cleaned, cut display values for the templates
+    - `settings.py`: send mode (`DISPUTE_DEFENDER_SEND_MODE`), host and port
+    - `__main__.py`: `python -m dispute_defender.web`, uvicorn on 127.0.0.1
+    - `templates/`: Jinja2 templates (autoescape on)
 - `tests/`: offline pytest suite; `tests/fixtures/paypal/` and `tests/fixtures/bedrock/` hold hand-written payloads
 - `requirements.txt` (runtime) and `requirements-dev.txt` (tests), pinned
-- TODO: layout for the web app (decide in T-006)
 
 ## Working rules
 - Keep changes within the current task and follow existing patterns.
