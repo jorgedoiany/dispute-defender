@@ -22,3 +22,6 @@ dist/
 
 # Local data
 *.log
+
+# Offline UI preview output (scripts/preview_ui.py)
+ui-preview/

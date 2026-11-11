@@ -21,7 +21,7 @@
 {% if after %}
 <p><strong>Read back from PayPal at {{ read_at }}{% if not sent %} (not changed by this run){% endif %}:</strong></p>
 <table>
-  <tr><th>Status</th><td>{{ after.status }}</td></tr>
+  <tr><th>Status</th><td><span class="status-tag">{{ after.status }}</span></td></tr>
   <tr><th>Stage</th><td>{{ after.stage }}</td></tr>
   <tr><th>Actions PayPal offers (links)</th><td>{{ after.links | join(", ") or "-" }}</td></tr>
 </table>

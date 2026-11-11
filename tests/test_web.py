@@ -289,7 +289,8 @@ def test_result_page_shows_the_read_back_state_not_an_assumed_one(make: Any) -> 
     assert f"Read back from PayPal at {READ_AT}" in readback
     assert "WAITING_FOR_BUYER_RESPONSE" in readback
     assert "accept-claim, self" in readback  # links from the read-back, not from the ack
-    assert "<td>UNDER_REVIEW</td>" not in readback  # nothing assumed
+    assert not re.search(r">\s*UNDER_REVIEW\s*<", readback)  # nothing assumed (as a value, in any markup)
+    assert re.search(r">\s*WAITING_FOR_BUYER_RESPONSE\s*<", readback)
     assert "Before approving: WAITING_FOR_SELLER_RESPONSE / INQUIRY" in result.text
     assert "not changed by this run" not in result.text
     assert f'href="/disputes/{DISPUTE_ID}/state"' in result.text
