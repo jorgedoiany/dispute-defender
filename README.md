@@ -189,7 +189,7 @@ Tests (offline; no credentials or network): `.venv/bin/python -m pytest`. Offlin
 - **`require-evidence` was never offered**, so it was never called.
 - **Evidence content is not read back.** The dispute's `evidences[]` entries have no field holding the submitted tracking info. The read-back confirms the new state, not what PayPal stored.
 - **`allowed_response_options` listed only `accept_claim`** while the `provide_evidence` link was offered and evidence was then accepted. The send gate therefore relies on the `provide_evidence` link only.
-- **`UNDER_REVIEW` is short-lived.** After evidence, the dispute read `UNDER_REVIEW` with only the `self` link, then `WAITING_FOR_BUYER_RESPONSE` a few minutes later without any call from the app.
+- **`UNDER_REVIEW` is short-lived.** After evidence, the dispute read `UNDER_REVIEW` with only the `self` link, then `WAITING_FOR_BUYER_RESPONSE` a few minutes later, with no write call in between (no call at all in T-002 and T-003; only reads in T-006).
 - **The verifier trusts the merchant record.** A wrong tracking number in the merchant's own record is not caught (Part B blind spot above).
 - One dispute reason (item not received) and one carrier (`FEDEX`). PayPal's limit on `notes` length was not verified; the app's 2,000-character cap is an assumption.
 - Dates are compared in UTC, so a correct local date near midnight is BLOCKED.
@@ -207,7 +207,7 @@ Only things observed in our sandbox runs (details in [`PROGRESS.md`](PROGRESS.md
 3. **`send-message` accepted a JSON body although the API spec lists only multipart.** Seen on `PP-R-HBV-10197617` (T-002 step 9) and `PP-R-KXL-10197854` (T-003 step 8).
 4. **The submitted evidence cannot be read back.** `evidences[0]` holds only `date`, `dispute_life_cycle_stage`, `evidence_type`, `notes` and `source`, with no tracking info, so a client cannot confirm what was stored. Seen on `PP-R-KXL-10197854` and `PP-R-HBV-10197617` (T-004, `show --nested-keys`).
 5. **`allowed_response_options` did not match the offered links.** It held only `accept_claim` while the `provide_evidence` link was offered, and provide-evidence was then accepted. Seen on `PP-R-UXH-10198605` (T-006 live send).
-6. **Status changes without a call, and quickly.** After provide-evidence, `UNDER_REVIEW` changed to `WAITING_FOR_BUYER_RESPONSE` within minutes. Seen on `PP-R-HBV-10197617` (T-002 steps 7 to 8), `PP-R-KXL-10197854` (T-003 steps 6 to 7) and `PP-R-UXH-10198605` (T-006 state timeline). A client must re-read state before acting.
+6. **Status changes without a write call, and quickly.** After provide-evidence, `UNDER_REVIEW` changed to `WAITING_FOR_BUYER_RESPONSE` within minutes. Seen on `PP-R-HBV-10197617` (T-002 steps 7 to 8), `PP-R-KXL-10197854` (T-003 steps 6 to 7) and `PP-R-UXH-10198605` (T-006 state timeline). A client must re-read state before acting.
 
 ## Repository structure
 
