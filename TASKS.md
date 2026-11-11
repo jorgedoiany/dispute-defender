@@ -6,7 +6,7 @@ A merchant opens a PayPal sandbox dispute, reviews a drafted response whose ever
 Target dates: core build Nov 9-10; README, license, video and submission Nov 11 (deadline Nov 12, 12:00 PT).
 
 ## Current task
-None started. Next: T-008.
+T-010 (replay mode), time-boxed to about 2 hours, before T-008 (author decision, 2026-11-11). Next: T-008.
 
 ## Backlog
 
@@ -136,10 +136,11 @@ None started. Next: T-008.
 
 ### T-010: Replay mode for judges without credentials
 - Priority: P2
-- Status: Todo
+- Status: In progress
 - Depends on: T-006
+- Context: criterion reworded on 2026-11-11 (author): no PayPal response in the repo is a recording, so the replay data is described as what it is. Decisions in ADR-012.
 - Acceptance criteria:
-  - [ ] Recorded sandbox responses can drive the flow, clearly labelled as replay and not the default
+  - [ ] Hand-written sandbox-shaped disputes and model outputs recorded on simulated scenarios can drive the flow, clearly labelled as replay and not the default
 
 ### T-011: Retry once with a new token after a 401
 - Priority: P2

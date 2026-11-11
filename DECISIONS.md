@@ -12,6 +12,7 @@
 - ADR-009: Bedrock drafter returns claims only, through a forced tool (Accepted)
 - ADR-010: Send path: VERIFIED-only rendering, re-verify on approve, local dry-by-default app (Accepted)
 - ADR-011: Evaluation scoring definitions for T-007 (Accepted)
+- ADR-012: Replay mode for judges: two clients swapped, CLI flag only (Accepted)
 
 ## Entry template
 ### ADR-[number]: [title]
@@ -258,3 +259,31 @@ T-007 measures how many wrong claims reach the send step with and without the ve
 - The numbers describe simulated scenarios written with knowledge of the rules, not real-world accuracy.
 - A model value in an unlisted but equivalent form counts as a model error and shows in the disagreements table if VERIFIED.
 - Part B's catch rate reflects faults designed against known rules, so a high rate is expected by construction.
+
+### ADR-012: Replay mode for judges: two clients swapped, CLI flag only
+- Date: 2026-11-11
+- Status: Accepted
+- Supersedes: none
+
+#### Context
+Judges may have no PayPal sandbox account or AWS credentials, and making an answerable sandbox dispute needs manual buyer steps (ADR-007). ADR-004 allows a replay mode only as a labelled extra that is never the default. No PayPal response in the repo is a recording: the test fixtures and the T-007 scenarios are hand-written, and the T-007 raw results hold the model's claims (type, source, value), not its raw tool input.
+#### Decision
+- **What is swapped.** Only the two external systems: `ReplayPayPalClient` and `ReplayModelClient` in `dispute_defender/replay/`. The prompt builder, drafter validation, verifier, renderer, send gate, CSRF, escaping and read-back are the real code. Replay needs no credentials and makes no network call.
+- **How it is enabled.** Only with the command-line flag `python -m dispute_defender.web --replay`. There is no environment variable for it: `load_send_mode()` still returns only `dry` or `live`, and with `--replay` the app does not read `.env` at all. `create_app()` takes a third mode, `replay`, and refuses to start if replay mode is given real clients or if replay clients are given dry or live mode, so a real client can never sit behind the replay banner.
+- **What a send does.** In replay mode Approve calls the replay PayPal client's `provide_evidence`, which keeps the payload in memory and moves that dispute to a hand-written read-back state (`UNDER_REVIEW`, no `provide_evidence` link). The page says the state is replayed, not read from PayPal. Nothing is written to disk.
+- **Banner.** Every page shows a REPLAY banner in its own colour, distinct from DRY RUN and LIVE SANDBOX SEND, saying the data is recorded or simulated and nothing leaves the machine.
+- **Data.** `dispute_defender/replay/data/replay.json`, labelled `"simulated": true`, with a source label per dispute shown on the page:
+  1. Scenario N1 (simulated, hand-written for T-007) with the model output recorded in the T-007 live run (primary model, repetition 1), rebuilt from the recorded claims.
+  2. A hand-written dispute in `WAITING_FOR_BUYER_RESPONSE` without the `provide_evidence` link; refused before any model call.
+  3. A hand-written dispute based on scenario N2 without `seller_protection_eligible`, with its own transaction ID. Its model output is the recorded N2 output with the transaction ID adapted to this dispute, plus SIMULATED injected errors (amount 250.00 instead of 25.00, and a seller protection claim), so a BLOCKED and a FLAGGED claim can be seen.
+- **Hygiene.** No real PayPal IDs, names, emails, request IDs or secrets in replay data; a test checks this and checks the data's provenance against `evaluation/scenarios/` and `evaluation/results/raw-2026-11-11.jsonl`.
+#### Alternatives
+- An environment variable or `.env` setting: not chosen; a stray value could switch the app to fake data without the user noticing.
+- A separate entry point (`python -m dispute_defender.replay`): equally safe, but one more command to document; the flag is easier for judges to find.
+- Replaying the test fixtures: not chosen; they carry real sandbox IDs.
+- A fake "ideal" model that copies the prompt's facts: not chosen; replay shows outputs a real model produced, rebuilt from the recorded claims.
+#### Consequences
+- Replay shows the flow and the verifier, not PayPal's or the model's real behaviour: no model variation, latency, token counts, API errors or unknown-outcome page.
+- The read-back state is hand-written from the T-006 observation, not read.
+- State is per process; restarting the app resets it.
+- `create_app()` gains a third mode value; dry and live behaviour is unchanged.
