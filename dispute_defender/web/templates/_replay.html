@@ -1,0 +1,13 @@
+{# Replay mode only (T-010): where this dispute's data and model output come from. #}
+{% if replay %}{% set entry = replay_source(dispute_id) %}{% if entry %}
+<div class="replay-source">
+  <strong>Replay: {{ entry.title }}</strong>
+  <ul>
+    <li>Dispute data: {{ entry.source.dispute }}</li>
+    <li>Model output: {{ entry.source.model_output or "none; this dispute is refused before any model call." }}</li>
+    {% if entry.source.adapted %}<li>Adapted: {{ entry.source.adapted }}</li>{% endif %}
+    {% if entry.source.injected %}<li class="injected"><strong>{{ entry.source.injected }}</strong></li>{% endif %}
+    {% if show_hint and entry.hint %}<li>To match the recorded output, type tracking number <code>{{ entry.hint.tracking_number }}</code> and choose carrier <code>{{ entry.hint.carrier }}</code>. Any other tracking number shows the verifier blocking the claim and the send gate refusing.</li>{% endif %}
+  </ul>
+</div>
+{% endif %}{% endif %}

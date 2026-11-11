@@ -2,7 +2,12 @@
 {% block title %}State of {{ dispute.dispute_id }}{% endblock %}
 {% block content %}
 <h1>State of {{ dispute.dispute_id }}</h1>
+{% if replay %}
+<p><strong>Replayed state at {{ read_at }}, from local replay data; not read from PayPal.</strong></p>
+{% with dispute_id=dispute.dispute_id, show_hint=false %}{% include "_replay.html" %}{% endwith %}
+{% else %}
 <p><strong>Read back from PayPal at {{ read_at }}.</strong> Statuses change on their own; UNDER_REVIEW can be short-lived.</p>
+{% endif %}
 {% include "_facts.html" %}
 <p><a href="/disputes/{{ dispute.dispute_id }}/state">Refresh state</a> · <a href="/disputes/{{ dispute.dispute_id }}">Dispute page</a></p>
 {% endblock %}

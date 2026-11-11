@@ -12,6 +12,9 @@ Safety rules, all enforced on the server:
 - In dry mode (the default) everything runs except the provide-evidence POST.
 - The state shown after approving is read back from PayPal, never assumed.
 - No persistence: the process keeps only the CSRF key and used nonces.
+- Replay mode (T-010, ADR-012) needs the replay PayPal and model clients, and they are
+  refused in dry and live mode. In replay mode Approve hands the evidence to the replay
+  PayPal client, which keeps it in memory; every page shows the REPLAY banner.
 """
 from __future__ import annotations
 
@@ -42,7 +45,7 @@ from dispute_defender.response import (
 
 from .csrf import CsrfTokens
 from .forms import FormError, merchant_record
-from .settings import ALLOWED_HOSTS, SendMode
+from .settings import ALLOWED_HOSTS, AppMode
 from .views import claim_views, dispute_view, shown
 
 TEMPLATES = Path(__file__).parent / "templates"
@@ -78,16 +81,35 @@ def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _check_replay_clients(replay: bool, paypal: object, model_client: object) -> None:
+    """Replay mode only with both replay clients; replay clients only in replay mode.
+
+    A real client must never sit behind the "nothing leaves this machine" banner, and a
+    replay client must never be presented as PayPal or the real model.
+    """
+    from dispute_defender.replay import ReplayModelClient, ReplayPayPalClient
+
+    replay_paypal = isinstance(paypal, ReplayPayPalClient)
+    replay_model = isinstance(model_client, ReplayModelClient)
+    if replay and not (replay_paypal and replay_model):
+        raise ValueError("replay mode needs the replay PayPal client and the replay model client")
+    if not replay and (replay_paypal or replay_model):
+        raise ValueError("replay clients can only be used in replay mode")
+
+
 def create_app(
     *,
     paypal: PayPalClient,
     model_client: ModelClient,
     model_id: str,
-    send_mode: SendMode = "dry",
+    send_mode: AppMode = "dry",
     csrf: CsrfTokens | None = None,
     now: Callable[[], datetime] = _utc_now,
 ) -> FastAPI:
     live = send_mode == "live"
+    replay = send_mode == "replay"
+    _check_replay_clients(replay, paypal, model_client)
+    replay_source = paypal.source if replay else None  # type: ignore[attr-defined]
     tokens = csrf or CsrfTokens()
     env = Environment(loader=FileSystemLoader(TEMPLATES), autoescape=True, undefined=StrictUndefined)
 
@@ -102,7 +124,9 @@ def create_app(
         return response
 
     def page(name: str, status: int = 200, **context: Any) -> HTMLResponse:
-        html = env.get_template(name).render(live=live, model_id=model_id, **context)
+        html = env.get_template(name).render(
+            live=live, replay=replay, replay_source=replay_source, model_id=model_id, **context
+        )
         return HTMLResponse(html, status_code=status)
 
     def message(status: int, title: str, text: str, back: str | None = None) -> HTMLResponse:
@@ -254,7 +278,7 @@ def create_app(
                               notice=f"Nothing was sent: {outcome.reason}.")
 
         sent = False
-        if live:
+        if live or replay:  # replay: the replay client keeps the payload in memory
             try:
                 paypal.provide_evidence(did, [outcome.evidence])
             except PayPalAPIError as exc:

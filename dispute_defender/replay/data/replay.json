@@ -1,0 +1,328 @@
+{
+  "simulated": true,
+  "notice": "REPLAY DATA for T-010 (ADR-012). Not real PayPal data. The disputes are hand-written, sandbox-shaped and SIMULATED. The model outputs are rebuilt from claims a real model made on SIMULATED scenarios in the T-007 live evaluation; dispute 3 adds a deliberately injected error. No real IDs, personal data, request IDs or secrets.",
+  "recorded_model_id": "us.anthropic.claude-sonnet-4-6",
+  "disputes": [
+    {
+      "title": "1. Sendable dispute, correct recorded model output",
+      "source": {
+        "dispute": "SIMULATED: scenario N1, hand-written for the T-007 evaluation (evaluation/scenarios/N1.json). Not a real PayPal dispute.",
+        "model_output": "RECORDED: claims made by us.anthropic.claude-sonnet-4-6 on simulated scenario N1 in the T-007 live run of 2026-11-11 (repetition 1), rebuilt from the recorded claim values in evaluation/results/raw-2026-11-11.jsonl.",
+        "adapted": null,
+        "injected": null
+      },
+      "hint": {
+        "tracking_number": "SIM100000001",
+        "carrier": "FEDEX"
+      },
+      "provenance": {
+        "scenario": "N1",
+        "raw_results": "evaluation/results/raw-2026-11-11.jsonl",
+        "model_label": "primary",
+        "repetition": 1
+      },
+      "dispute": {
+        "dispute_id": "PP-R-SIM-N1",
+        "create_time": "2026-11-10T12:00:00Z",
+        "update_time": "2026-11-10T12:05:00Z",
+        "disputed_transactions": [
+          {
+            "buyer_transaction_id": "FAKE-BUYER-TXN-N01",
+            "seller_transaction_id": "SIMN01TXN00000001",
+            "create_time": "2026-11-09T14:50:00Z",
+            "gross_amount": {
+              "currency_code": "USD",
+              "value": "10.00"
+            },
+            "transaction_status": "COMPLETED",
+            "seller_protection_eligible": true,
+            "buyer": {
+              "name": "FAKE-BUYER-NAME",
+              "email": "fake-buyer@example.invalid"
+            },
+            "seller": {
+              "merchant_id": "FAKEMERCHANT0",
+              "name": "Simulated Test Store"
+            }
+          }
+        ],
+        "reason": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED",
+        "status": "WAITING_FOR_SELLER_RESPONSE",
+        "dispute_amount": {
+          "currency_code": "USD",
+          "value": "10.00"
+        },
+        "dispute_life_cycle_stage": "INQUIRY",
+        "dispute_channel": "INTERNAL",
+        "messages": [
+          {
+            "posted_by": "BUYER",
+            "content": "SIMULATED buyer message: I have not received my order yet."
+          }
+        ],
+        "links": [
+          {
+            "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-N1/accept-claim",
+            "rel": "accept_claim",
+            "method": "POST"
+          },
+          {
+            "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-N1/provide-evidence",
+            "rel": "provide_evidence",
+            "method": "POST"
+          },
+          {
+            "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-N1/send-message",
+            "rel": "send_message",
+            "method": "POST"
+          },
+          {
+            "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-N1",
+            "rel": "self",
+            "method": "GET"
+          }
+        ]
+      },
+      "after_send": {
+        "status": "UNDER_REVIEW",
+        "links": [
+          {
+            "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-N1",
+            "rel": "self",
+            "method": "GET"
+          }
+        ]
+      },
+      "model_output": {
+        "claims": [
+          {
+            "type": "transaction_id",
+            "source": "paypal",
+            "value": "SIMN01TXN00000001"
+          },
+          {
+            "type": "amount",
+            "source": "paypal",
+            "value": {
+              "value": "10.00",
+              "currency_code": "USD"
+            }
+          },
+          {
+            "type": "transaction_date",
+            "source": "paypal",
+            "value": "2026-11-09"
+          },
+          {
+            "type": "seller_protection",
+            "source": "paypal",
+            "value": true
+          },
+          {
+            "type": "tracking_number",
+            "source": "merchant_record",
+            "value": "SIM100000001"
+          },
+          {
+            "type": "carrier",
+            "source": "merchant_record",
+            "value": "FedEx"
+          }
+        ]
+      }
+    },
+    {
+      "title": "2. Not sendable: waiting for the buyer",
+      "source": {
+        "dispute": "SIMULATED: hand-written for T-010, based on scenario N3, with status WAITING_FOR_BUYER_RESPONSE and no provide_evidence link. Not a real PayPal dispute.",
+        "model_output": null,
+        "adapted": null,
+        "injected": null
+      },
+      "hint": null,
+      "provenance": {
+        "scenario": "N3"
+      },
+      "dispute": {
+        "dispute_id": "PP-R-SIM-REPLAY2",
+        "create_time": "2026-11-10T12:00:00Z",
+        "update_time": "2026-11-10T12:05:00Z",
+        "disputed_transactions": [
+          {
+            "buyer_transaction_id": "FAKE-BUYER-TXN-RP2",
+            "seller_transaction_id": "SIMRP2TXN00000001",
+            "create_time": "2026-11-09T14:50:00Z",
+            "gross_amount": {
+              "currency_code": "USD",
+              "value": "49.99"
+            },
+            "transaction_status": "COMPLETED",
+            "seller_protection_eligible": true,
+            "buyer": {
+              "name": "FAKE-BUYER-NAME",
+              "email": "fake-buyer@example.invalid"
+            },
+            "seller": {
+              "merchant_id": "FAKEMERCHANT0",
+              "name": "Simulated Test Store"
+            }
+          }
+        ],
+        "reason": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED",
+        "status": "WAITING_FOR_BUYER_RESPONSE",
+        "dispute_amount": {
+          "currency_code": "USD",
+          "value": "49.99"
+        },
+        "dispute_life_cycle_stage": "INQUIRY",
+        "dispute_channel": "INTERNAL",
+        "messages": [],
+        "links": [
+          {
+            "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-REPLAY2",
+            "rel": "self",
+            "method": "GET"
+          }
+        ]
+      },
+      "after_send": {
+        "status": "UNDER_REVIEW",
+        "links": [
+          {
+            "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-REPLAY2",
+            "rel": "self",
+            "method": "GET"
+          }
+        ]
+      },
+      "model_output": null
+    },
+    {
+      "title": "3. Sendable dispute, SIMULATED model error injected to demonstrate the verifier",
+      "source": {
+        "dispute": "SIMULATED: hand-written for T-010, based on scenario N2 (25.00 USD), with its own transaction ID and without seller_protection_eligible. Not a real PayPal dispute.",
+        "model_output": "RECORDED, then changed: claims made by us.anthropic.claude-sonnet-4-6 on simulated scenario N2 in the T-007 live run of 2026-11-11 (repetition 1), rebuilt from the recorded claim values in evaluation/results/raw-2026-11-11.jsonl.",
+        "adapted": "The recorded transaction_id claim (SIMN02TXN00000001) was changed to this replay dispute's transaction ID (SIMRP3TXN00000001).",
+        "injected": "SIMULATED model error injected to demonstrate the verifier: the amount claim was changed from 25.00 USD to 250.00 USD, so it is BLOCKED. The recorded seller_protection claim (true) is kept, but this dispute's data has no seller_protection_eligible, so there is nothing to check it against and it is FLAGGED. Neither reaches the response."
+      },
+      "hint": {
+        "tracking_number": "SIM100000002",
+        "carrier": "FEDEX"
+      },
+      "provenance": {
+        "scenario": "N2",
+        "raw_results": "evaluation/results/raw-2026-11-11.jsonl",
+        "model_label": "primary",
+        "repetition": 1
+      },
+      "dispute": {
+        "dispute_id": "PP-R-SIM-REPLAY3",
+        "create_time": "2026-11-10T12:00:00Z",
+        "update_time": "2026-11-10T12:05:00Z",
+        "disputed_transactions": [
+          {
+            "buyer_transaction_id": "FAKE-BUYER-TXN-RP3",
+            "seller_transaction_id": "SIMRP3TXN00000001",
+            "create_time": "2026-11-09T14:50:00Z",
+            "gross_amount": {
+              "currency_code": "USD",
+              "value": "25.00"
+            },
+            "transaction_status": "COMPLETED",
+            "buyer": {
+              "name": "FAKE-BUYER-NAME",
+              "email": "fake-buyer@example.invalid"
+            },
+            "seller": {
+              "merchant_id": "FAKEMERCHANT0",
+              "name": "Simulated Test Store"
+            }
+          }
+        ],
+        "reason": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED",
+        "status": "WAITING_FOR_SELLER_RESPONSE",
+        "dispute_amount": {
+          "currency_code": "USD",
+          "value": "25.00"
+        },
+        "dispute_life_cycle_stage": "CHARGEBACK",
+        "dispute_channel": "INTERNAL",
+        "messages": [
+          {
+            "posted_by": "BUYER",
+            "content": "SIMULATED buyer message: I have not received my order yet."
+          }
+        ],
+        "links": [
+          {
+            "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-REPLAY3/accept-claim",
+            "rel": "accept_claim",
+            "method": "POST"
+          },
+          {
+            "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-REPLAY3/provide-evidence",
+            "rel": "provide_evidence",
+            "method": "POST"
+          },
+          {
+            "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-REPLAY3/send-message",
+            "rel": "send_message",
+            "method": "POST"
+          },
+          {
+            "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-REPLAY3",
+            "rel": "self",
+            "method": "GET"
+          }
+        ]
+      },
+      "after_send": {
+        "status": "UNDER_REVIEW",
+        "links": [
+          {
+            "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-REPLAY3",
+            "rel": "self",
+            "method": "GET"
+          }
+        ]
+      },
+      "model_output": {
+        "claims": [
+          {
+            "type": "transaction_id",
+            "source": "paypal",
+            "value": "SIMRP3TXN00000001"
+          },
+          {
+            "type": "amount",
+            "source": "paypal",
+            "value": {
+              "value": "250.00",
+              "currency_code": "USD"
+            }
+          },
+          {
+            "type": "transaction_date",
+            "source": "paypal",
+            "value": "2026-11-09"
+          },
+          {
+            "type": "seller_protection",
+            "source": "paypal",
+            "value": true
+          },
+          {
+            "type": "tracking_number",
+            "source": "merchant_record",
+            "value": "SIM100000002"
+          },
+          {
+            "type": "carrier",
+            "source": "merchant_record",
+            "value": "FedEx"
+          }
+        ]
+      }
+    }
+  ]
+}
