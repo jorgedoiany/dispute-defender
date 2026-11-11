@@ -197,9 +197,33 @@ Not verified:
 - Concurrent requests, and browsers other than Chrome.
 
 ## In progress
-- T-007: small evaluation on `feat/t-007-evaluation`. Scoring definitions in ADR-011.
+- T-007: small evaluation on `feat/t-007-evaluation`. Scoring definitions in ADR-011. Code, scenarios, Part B, report and freeze are done; **Part A (the live run) has not been run**.
+
+## T-007 evaluation (in progress)
+Delivered (commits 1-7 of the approved plan, 2026-11-10):
+- ADR-011 (scoring definitions); T-007 marked current.
+- `evaluation/scenarios/`: 24 **simulated** scenarios in 9 categories, each labelled `"simulated": true` with ground truth for all six claim types. Authored for this evaluation with a throwaway script outside the repo, then checked by hand and by `tests/test_eval_scenarios.py`.
+- `dispute_defender/evaluation/`: loader, pipeline (real verifier and send gate), scoring and metrics, Part B fault injection, scripted fake clients, runner (cap, abort, resume), freeze hashes, report.
+- `scripts/run_evaluation.py` with `faults`, `freeze`, `run` (`--dry-run` / `--confirm-spend`) and `report`.
+- `evaluation/results/faults.json` (Part B), `evaluation/frozen.json` (freeze at 2026-11-11T03:57:46+00:00 UTC), `evaluation/DECLARED_CHANGES.md` (none), `evaluation/results.md` (generated; Part A "Not run yet").
+
+Part B (offline, simulated, 1,192 fault cases on 24 scenarios): every fault the verifier should catch was caught (FLAGGED or BLOCKED) at the claim layer, and every tool-input fault gave `DraftRejected`; none reached a send plan. Expected misses: 43 of 43 altered-merchant-record faults were VERIFIED, and 20 of them reached a send plan (the verifier trusts the record). Benign variants: 82 of 82 VERIFIED. Known false rejections by design: 2 of 2 local dates (D1, D2) BLOCKED. Baseline: 0 of 128 correct claims rejected. These faults were written against known rules, so a high catch rate is expected by construction.
+
+Found and fixed while building (before the freeze and before any live call):
+- A fault operator turned carrier `FedEx` into `FedEX`, a case variant the verifier correctly accepts; it showed as 3 false "misses". The operator now changes a letter to a different letter ignoring case, and a test checks that every value fault differs from all accepted values.
+- The dry-run token heuristic first used 3 characters per token, which underestimated against T-005's ~2,020 observed input tokens; it is 2.3 now, documented in `runner.py`. It remains a heuristic.
+
+Not run or not verified:
+- Part A (144 billed Bedrock calls): not run. No model accuracy number exists yet.
+- The `--confirm-spend` path is tested offline with scripted clients only; the Bedrock client in the runner is the existing `BedrockModelClient`.
+- Time per call (3-10 s) is an assumption; T-005 did not record call times.
+
+Next step: the author runs `run --dry-run`, then the live run with `--confirm-spend`, then `report`; then T-007 criteria are checked against `results.md`.
 
 ## Verification
+- T-007: `.venv/bin/python -m pytest`: 670 passed, offline (2026-11-10); 224 of them added in T-007. One warning: the Starlette `httpx` notice. No Bedrock or PayPal call was made.
+- T-007: `scripts/run_evaluation.py faults`, `freeze`, `report` and `run --dry-run` ran offline (results above).
+- T-007: secret scan on the working tree and git history (AWS access key IDs, AWS secret key names, AWS ARNs, 12-digit account-like numbers, and the PayPal client ID and secret from `.env` matched without printing them): no secrets. The only secret-key-name matches are the same two as in T-005 (`tests/conftest.py`, `tests/test_bedrock_client.py`). `.env` is ignored and untracked.
 - T-006: `.venv/bin/python -m pytest`: 446 passed, offline (2026-11-10); 184 of them added in T-006. One warning: Starlette's deprecation notice for `httpx` with its TestClient. PayPal is mocked with `responses` and the model is a fake client.
 - T-006: the Origin bug was reproduced and the fix checked against the real app under uvicorn on 127.0.0.1 with a stubbed PayPal session and a fake model: real origin 200, `Origin: null` 403, header `Referrer-Policy: same-origin`.
 - T-006: live dry run and live send in Chrome: see the T-006 section.
@@ -223,9 +247,9 @@ Not verified:
 - None.
 
 ## Next steps
-1. T-007: small evaluation. About 20-30 disputes with seeded errors (wrong amount, date or tracking), simulated and labelled as simulated (ADR-007). Metric: wrong claims that reach the send step, model-only draft vs. draft with verifier. Write down the result and its limits.
+1. T-007: run Part A (`scripts/run_evaluation.py run --dry-run`, then with `--confirm-spend`), then `report`; check the T-007 criteria against `evaluation/results.md` and open the PR.
 2. T-008: README (what it does and the measured result first, then setup and run steps, the PayPal sandbox and model used, known limitations), a fresh-clone check, the secrets scan on the repo and history, and the license in the About section.
 3. Optional, only if time remains: the live prompt-injection run (T-005), T-011 (401 retry), T-012 (cosmetic fixes).
 
 ## Resume instruction
-Read AGENTS.md and TASKS.md, confirm the current state, then continue with T-007.
+Read AGENTS.md and TASKS.md, confirm the current state, then continue with T-007 (the live run of Part A).

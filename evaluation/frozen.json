@@ -1,0 +1,14 @@
+{
+  "notice": "Hashes recorded before the T-007 live run (ADR-011). Each later freeze is a declared change.",
+  "freezes": [
+    {
+      "frozen_at": "2026-11-11T03:57:46+00:00",
+      "hashes": {
+        "scenarios": "4b78bee865d85b1a67dd4c285eaaef3a758f1bc02e5b27620f8cdc02d32d93e9",
+        "scoring": "1ed210f06a7a4b59268c399b6e21b3acc05dc43382331896c2136333418ca2bb",
+        "prompt": "19c3225b501487b901bb6deb812b78d9e92f69a834dbb7e2c0819ad973ce79bf",
+        "pipeline": "9fda44771fd4b7afa4c92195d964b73d8e68f3d89d2a4b7de43caa6e6dbd059d"
+      }
+    }
+  ]
+}

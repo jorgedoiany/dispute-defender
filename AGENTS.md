@@ -25,6 +25,12 @@ Verified on 2026-11-09 with Python 3.14 (install and test commands re-verified w
 - Client smoke check: `.venv/bin/python scripts/smoke_client.py <step> [--dispute-id ID]`. Steps: `token`, `list`, `show`, `provide-evidence`, `send-message`. Reads `.env`; sandbox only. All five steps verified against the sandbox in T-003 (see PROGRESS.md). `show --nested-keys` also prints key names (no values) one level down in `disputed_transactions[0]`, `evidences[0]`, `messages[0]` and `offer`; verified in T-004.
 - Verifier smoke check: `.venv/bin/python scripts/smoke_verifier.py --dispute-id PP-R-KXL-10197854|PP-R-HBV-10197617`. Read only (GET); runs fixed test claims through `verify_claims` and prints verdicts and reasons only. Reads `.env`; sandbox only. Verified on both disputes in T-004.
 - Drafter smoke check: `.venv/bin/python scripts/smoke_drafter.py --dispute-id ID [--model primary|secondary] [--no-record]`. One PayPal sandbox GET, **one billed Bedrock Converse call**, then the verifier; nothing is sent to PayPal or the buyer. Reads `.env` and the AWS CLI profile. Prints verdicts, model ID, token counts and claim values cut to 60 characters; never the prompt, buyer message text or credentials. Exit 0 ok, 1 error, 2 draft rejected. Verified live on 2026-11-10 (primary on both sandbox disputes, secondary on one).
+- Evaluation (T-007, **simulated scenarios**, ADR-011): `.venv/bin/python scripts/run_evaluation.py <step>`. Never calls PayPal.
+  - `faults`: Part B, offline fault injection, writes `evaluation/results/faults.json`. Free. Verified on 2026-11-10.
+  - `freeze`: records the hashes of scenarios, scoring, prompt and pipeline in `evaluation/frozen.json`. Commit it before a live run.
+  - `run --dry-run [--model primary|secondary|both] [--repetitions N] [--scenarios IDS]`: prints calls, estimated tokens, models, time and freeze status; no client, no call. Dollars only with `--price-in-per-m` and `--price-out-per-m` (author-supplied, one model at a time). Verified on 2026-11-10.
+  - `run --confirm-spend --out evaluation/results/raw-<date>.jsonl`: Part A, **billed Bedrock calls** (144 for both models, 3 repetitions). Refused without a matching freeze; hard cap `--max-calls` (default 144, ceiling 200, earlier attempts in the file count); aborts on config errors, throttling or 3 errors in a row; rerun the same command to resume. Exit 0 ok, 1 config, 3 no `--confirm-spend`, 4 aborted, 5 refused. Not run yet.
+  - `report`: writes `evaluation/results.md` from the raw results, `faults.json`, the freeze and `evaluation/DECLARED_CHANGES.md`. Verified offline on 2026-11-10.
 - Lint/typecheck/build: TODO: decide whether any are used, then verify
 - Sandbox spike: `.venv/bin/python scripts/spike_sandbox.py <step> [options]`. Reads `.env`; refuses any host other than `api-m.sandbox.paypal.com`. One step per run:
   - `token`, `create-order`, `capture --order-id ID`, `list`, `show --dispute-id ID`
@@ -38,6 +44,7 @@ Only paths confirmed in the brief are listed. Add others when they exist.
 - `scripts/smoke_verifier.py`: live read-only check of the claim verifier on the two sandbox disputes (T-004)
 - `scripts/smoke_drafter.py`: live check of the drafter: PayPal GET, one Bedrock call, verifier (T-005)
 - `scripts/preview_ui.py`: offline static preview of every page of the approval app (T-012)
+- `scripts/run_evaluation.py`: T-007 evaluation on simulated scenarios: `faults`, `freeze`, `run`, `report`
 - `dispute_defender/`: the app package
   - `paypal/config.py`: `PayPalConfig`, `load_config()` from environment variables, sandbox host guard
   - `paypal/errors.py`: `PayPalError` and subclasses; messages carry only HTTP status, name, issue codes and debug_id
@@ -64,6 +71,8 @@ Only paths confirmed in the brief are listed. Add others when they exist.
     - `settings.py`: send mode (`DISPUTE_DEFENDER_SEND_MODE`), host and port
     - `__main__.py`: `python -m dispute_defender.web`, uvicorn on 127.0.0.1
     - `templates/`: Jinja2 templates (autoescape on)
+  - `evaluation/` (T-007, ADR-011): `scenarios.py` (loader, refuses unlabelled files), `pipeline.py` (verifier and send gate on given claims), `scoring.py` (ground-truth classes and metrics), `faults.py` (Part B), `fake.py` (scripted model clients, offline only), `runner.py` (Part A with cap, abort and resume), `freeze.py` (hashes), `report.py` (`results.md`)
+- `evaluation/`: **simulated** evaluation data and results: `scenarios/*.json` (24), `README.md`, `frozen.json`, `DECLARED_CHANGES.md`, `results/` (raw JSONL and `faults.json`), `results.md` (generated)
 - `tests/`: offline pytest suite; `tests/fixtures/paypal/` and `tests/fixtures/bedrock/` hold hand-written payloads
 - `requirements.txt` (runtime) and `requirements-dev.txt` (tests), pinned
 

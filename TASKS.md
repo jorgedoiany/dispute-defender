@@ -103,6 +103,10 @@ T-007: Small evaluation (in progress on `feat/t-007-evaluation`).
   - [ ] Metric: wrong claims that reach the send step, model-only draft vs. draft with verifier
   - [ ] Result and its limits are written down
 - Note: evaluation data is simulated and labelled as such, because each sandbox dispute needs manual buyer steps in the browser (T-002, ADR-007).
+- Progress (2026-11-10): code, 24 simulated scenarios, Part B and the report are on `feat/t-007-evaluation`; the freeze is recorded. Part A (the live run, 144 billed calls) is **not run yet**, so no criterion is checked.
+  - Criterion 1: 24 simulated scenarios in `evaluation/scenarios/`, labelled and checked by `tests/test_eval_scenarios.py`. Seeded errors: Part B (1,192 offline fault cases) and the injection, date, record and carrier scenarios. To be checked after the live run.
+  - Criterion 2: M2 vs M3 come from the live run; the logic is tested offline in `tests/test_eval_scoring.py` and `tests/test_eval_report.py`.
+  - Criterion 3: `evaluation/results.md` has the limitations; Part A results pending.
 - Design (approved 2026-11-10): Part A, the real models draft claims for 24 simulated scenarios with known ground truth (3 repetitions, 2 models, 144 billed calls, only with `--confirm-spend`); Part B, offline fault injection into claims to measure what the verifier catches. Scoring definitions in ADR-011.
 
 ### T-008: README, license check and secrets scan

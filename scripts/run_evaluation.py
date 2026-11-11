@@ -137,7 +137,7 @@ def cmd_faults(args: argparse.Namespace) -> int:
 
 def cmd_freeze(_args: argparse.Namespace) -> int:
     entry = freeze(_now())
-    print(f"frozen at {entry['frozen_at']} -> {FROZEN_PATH}")
+    print(f"frozen at {entry['frozen_at']} -> evaluation/{FROZEN_PATH.name}")
     for name, digest in entry["hashes"].items():
         print(f"  {name:<9} {digest}")
     return 0
