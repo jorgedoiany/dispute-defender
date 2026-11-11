@@ -1,0 +1,28 @@
+{
+  "output": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "toolUse": {
+            "toolUseId": "tooluse_FAKE0000000000000000",
+            "name": "submit_claims",
+            "input": {
+              "claims": [
+                {"type": "transaction_id", "source": "paypal", "value": "54X87564PT289050U"},
+                {"type": "amount", "source": "paypal", "value": {"value": "10.00", "currency_code": "USD"}},
+                {"type": "transaction_date", "source": "paypal", "value": "2026-11-09"},
+                {"type": "seller_protection", "source": "paypal", "value": true},
+                {"type": "tracking_number", "source": "merchant_record", "value": "122533485"},
+                {"type": "carrier", "source": "merchant_record", "value": "FedEx"}
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "stopReason": "tool_use",
+  "usage": {"inputTokens": 1200, "outputTokens": 180, "totalTokens": 1380},
+  "metrics": {"latencyMs": 1500}
+}
