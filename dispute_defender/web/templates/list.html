@@ -2,7 +2,17 @@
 {% block title %}Disputes{% endblock %}
 {% block content %}
 <h1>Disputes</h1>
+{% if replay %}
+<p class="muted">Replayed from local data at {{ read_at }}; not read from PayPal.</p>
+<div class="replay-source">
+  <strong>Replay disputes (simulated data, see each dispute page for its sources)</strong>
+  <ul>
+    {% for d in disputes %}{% set entry = replay_source(d.dispute_id) %}{% if entry %}<li><a href="/disputes/{{ d.dispute_id }}">{{ d.dispute_id }}</a>: {{ entry.title }}</li>{% endif %}{% endfor %}
+  </ul>
+</div>
+{% else %}
 <p class="muted">Read from PayPal at {{ read_at }}.</p>
+{% endif %}
 {% if disputes %}
 <table class="disputes">
   <tr><th>Dispute</th><th>Status</th><th>Stage</th><th>Reason</th><th>Amount</th></tr>

@@ -7,6 +7,9 @@ from typing import Literal
 
 ENV_SEND_MODE = "DISPUTE_DEFENDER_SEND_MODE"
 SendMode = Literal["dry", "live"]
+# The app's mode. `replay` (T-010, ADR-012) is never read from the environment: only the
+# `--replay` command-line flag sets it, and create_app() requires the replay clients for it.
+AppMode = Literal["dry", "live", "replay"]
 
 # The app binds to loopback only; there is no option to change it.
 HOST = "127.0.0.1"

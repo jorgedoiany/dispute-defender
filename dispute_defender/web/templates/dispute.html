@@ -2,14 +2,27 @@
 {% block title %}Dispute {{ dispute.dispute_id }}{% endblock %}
 {% block content %}
 <h1>Dispute {{ dispute.dispute_id }}</h1>
+{% if replay %}
+<p class="muted">Replayed from local data at {{ read_at }}; not read from PayPal.</p>
+{% with dispute_id=dispute.dispute_id, show_hint=not refusal %}{% include "_replay.html" %}{% endwith %}
+{% else %}
 <p class="muted">Read from PayPal at {{ read_at }}.</p>
+{% endif %}
 {% include "_facts.html" %}
 {% if refusal %}
 <div class="refusal">Cannot respond now: {{ refusal }}.</div>
 {% else %}
+{% if replay %}
+<div class="ok">The replay data offers provide-evidence for this dispute.</div>
+{% else %}
 <div class="ok">PayPal offers provide-evidence for this dispute now.</div>
+{% endif %}
 <h2>Your shipping record</h2>
+{% if replay %}
+<p class="muted">Used only to check the drafted claims. Drafting replays a recorded model output (no model call); nothing is sent.</p>
+{% else %}
 <p class="muted">Used only to check the drafted claims. Drafting makes one model call; nothing is sent.</p>
+{% endif %}
 <form method="post" action="/disputes/{{ dispute.dispute_id }}/draft">
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <label>Tracking number <input name="tracking" required maxlength="64" pattern="[A-Za-z0-9-]{1,64}"></label>

@@ -3,7 +3,12 @@
 {% block content %}
 <h1>Draft for {{ dispute.dispute_id }}</h1>
 {% if notice %}<div class="notice">{{ notice }}</div>{% endif %}
+{% if replay %}
+<p class="muted">Dispute replayed from local data at {{ read_at }} (not read from PayPal): {{ dispute.status }} / {{ dispute.stage }}.</p>
+{% with dispute_id=dispute.dispute_id, show_hint=false %}{% include "_replay.html" %}{% endwith %}
+{% else %}
 <p class="muted">Dispute read from PayPal at {{ read_at }}: {{ dispute.status }} / {{ dispute.stage }}.</p>
+{% endif %}
 
 <h2>Claims and verification</h2>
 <p class="muted">Only VERIFIED claims are used in the response. FLAGGED and BLOCKED claims are never sent.</p>
@@ -24,15 +29,19 @@
 {% endif %}
 
 {% if approve %}
-<h2>Evidence that {% if live %}will be sent{% else %}would be sent (dry run){% endif %}</h2>
+<h2>Evidence that {% if replay %}will be recorded locally (replay: nothing leaves this machine){% elif live %}will be sent{% else %}would be sent (dry run){% endif %}</h2>
 <div class="box">{{ approve.payload }}</div>
 <form method="post" action="/disputes/{{ dispute.dispute_id }}/approve">
   <input type="hidden" name="csrf" value="{{ approve.csrf }}">
   <input type="hidden" name="tracking" value="{{ tracking }}">
   <input type="hidden" name="carrier" value="{{ carrier }}">
   <input type="hidden" name="shown_hash" value="{{ approve.shown_hash }}">
+  {% if replay %}
+  <p class="muted">Approving reads the replayed dispute again and drafts (replayed model output) and verifies again. The replay client records the evidence only if the text is the same as above.</p>
+  {% else %}
   <p class="muted">Approving reads the dispute again and drafts and verifies again (one more model call). It sends only if the text is the same as above.</p>
-  <button type="submit">{% if live %}Approve and send (live sandbox){% else %}Approve (dry run){% endif %}</button>
+  {% endif %}
+  <button type="submit">{% if replay %}Approve (replay){% elif live %}Approve and send (live sandbox){% else %}Approve (dry run){% endif %}</button>
 </form>
 {% else %}
 <div class="refusal">Cannot send: {{ refusal }}.</div>

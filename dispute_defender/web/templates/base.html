@@ -34,6 +34,14 @@
     --live-banner-text: #ffffff;
     --live-banner-border: #7f1d1d;
 
+    /* Replay mode (T-010): its own colour, never the dry or live one */
+    --replay-banner-bg: #1e3a8a;
+    --replay-banner-text: #ffffff;
+    --replay-banner-border: #172554;
+    --replay-box-bg: #eff6ff;
+    --replay-box-text: #1e3a8a;
+    --replay-box-border: #3b82f6;
+
     /* Alerts */
     --success-bg: #f0fdf4;
     --success-text: #166534;
@@ -93,6 +101,26 @@
     color: var(--live-banner-text);
     border-bottom: 1px solid var(--live-banner-border);
   }
+  .banner.replay {
+    background-color: var(--replay-banner-bg);
+    color: var(--replay-banner-text);
+    border-bottom: 1px solid var(--replay-banner-border);
+    font-size: 0.9rem;
+    padding: 14px 24px;
+  }
+  .replay-source {
+    border-left: 3px solid var(--replay-box-border);
+    background-color: var(--replay-box-bg);
+    color: var(--replay-box-text);
+    padding: 14px 18px;
+    margin: 16px 0;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.85rem;
+  }
+  .replay-source ul { margin: 8px 0 0; padding-left: 18px; }
+  .replay-source li { margin: 4px 0; }
+  .replay-source .injected { color: var(--error-text); }
+  .replay-source code { font-family: var(--font-mono); font-weight: 700; }
 
   /* Main container (card) */
   main {
@@ -378,13 +406,19 @@
 </style>
 </head>
 <body>
-{% if live %}
+{% if replay %}
+<div class="banner replay" role="status">REPLAY: recorded and simulated data, not real PayPal data. Nothing leaves this machine.</div>
+{% elif live %}
 <div class="banner live" role="status">LIVE SANDBOX SEND: approving sends evidence to the PayPal sandbox</div>
 {% else %}
 <div class="banner dry" role="status">DRY RUN: nothing will be sent</div>
 {% endif %}
 <main>
+{% if replay %}
+<p class="muted"><a href="/">All disputes</a> · Replay data, not PayPal · model output: {{ model_id }}</p>
+{% else %}
 <p class="muted"><a href="/">All disputes</a> · PayPal sandbox only · model {{ model_id }}</p>
+{% endif %}
 {% block content %}{% endblock %}
 </main>
 </body>
