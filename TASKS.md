@@ -6,7 +6,7 @@ A merchant opens a PayPal sandbox dispute, reviews a drafted response whose ever
 Target dates: core build Nov 9-10; README, license, video and submission Nov 11 (deadline Nov 12, 12:00 PT).
 
 ## Current task
-None started. Next: T-006.
+T-006: Approval page and send (in progress, design in ADR-010).
 
 ## Backlog
 
@@ -78,14 +78,16 @@ None started. Next: T-006.
 
 ### T-006: Approval page and send
 - Priority: P0
-- Status: Todo
+- Status: In progress
 - Depends on: T-005
 - Acceptance criteria:
   - [ ] A FastAPI page shows the dispute, each claim with its verification result, and Approve / Reject
   - [ ] Blocked claims cannot be sent
   - [ ] Approving sends the response in the sandbox and the page shows the dispute's new state read back from PayPal
   - [ ] The final state shown is read back from PayPal after sending, never assumed; statuses change on their own and UNDER_REVIEW can be short-lived (T-002)
-- Note: `PayPalClient` caches its OAuth token until shortly before `expires_in` and does not retry on a 401 from an API call. If a token is revoked early, every call fails until it expires. For a long-running app, consider dropping the cached token on a 401 and retrying the call once (T-003).
+- Design: ADR-010 (VERIFIED-only rendering, gate on the `provide_evidence` link, re-verify plus hash on approve, CSRF, local bind, dry by default, no persistence).
+- Note: if time runs out, the `GET /disputes/{id}/state` refresh route may be dropped (the merchant reloads the dispute page instead). The safety gates are never cut.
+- Note: the 401 retry is not part of T-006; see T-011.
 
 ### T-007: Small evaluation
 - Priority: P1
@@ -121,6 +123,15 @@ None started. Next: T-006.
 - Depends on: T-006
 - Acceptance criteria:
   - [ ] Recorded sandbox responses can drive the flow, clearly labelled as replay and not the default
+
+### T-011: Retry once with a new token after a 401
+- Priority: P2
+- Status: Todo
+- Depends on: T-006
+- Context: `PayPalClient` caches its OAuth token until shortly before `expires_in` and does not retry on a 401 from an API call. If a token is revoked early, every call fails until it expires (T-003). Moved out of T-006 (ADR-010).
+- Acceptance criteria:
+  - [ ] On a 401 from an API call (not the token request), the client drops the cached token, fetches a new one and retries the call once
+  - [ ] Offline tests: 401, then a new token, then 200 succeeds; two 401s in a row raise the error
 
 ## Later
 - Appeals and escalation flows

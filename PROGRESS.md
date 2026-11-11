@@ -1,7 +1,7 @@
 # PROGRESS.md
 
 Last updated: 2026-11-10 (America/Santo_Domingo)
-Current task: none (T-005 done; next: T-006)
+Current task: T-006 (in progress)
 
 ## Completed
 - T-001: public repository with an MIT license. `LICENSE` and the repo guides are on `main` and `.env` is untracked (checked locally). Public visibility and the About license were confirmed by the author; `gh` was not available to check them.
@@ -182,8 +182,8 @@ Nothing.
 ## Next steps
 1. Start T-006 (approval page and send, ADR-004):
    - A FastAPI page that shows the dispute, each drafted claim with its verdict and reason, the rendered response, and Approve / Reject.
-   - A pure template renderer that builds the response text from VERIFIED claims only (ADR-009); no model text reaches PayPal or the buyer.
-   - BLOCKED claims can never be sent. FLAGGED claims are left out unless the merchant explicitly confirms each one.
+   - A pure template renderer that builds the response text from VERIFIED claims only (ADR-009, ADR-010); no model text reaches PayPal or the buyer.
+   - Only VERIFIED claims can be sent. BLOCKED and FLAGGED claims are shown with their reasons but never rendered or sent, and the merchant cannot override a verdict (ADR-010; this replaces the earlier idea of letting the merchant confirm FLAGGED claims).
    - Approving sends the response in the sandbox, then the page shows the dispute's new state read back from PayPal, never assumed.
 2. Optional, only if time remains: the live prompt-injection run (a buyer message with an injection posted in the sandbox, then `scripts/smoke_drafter.py`).
 
