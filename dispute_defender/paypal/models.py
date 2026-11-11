@@ -68,6 +68,18 @@ class DisputedTransaction(_Response):
     seller_protection_eligible: StrictBool | None = None
 
 
+class DisputeMessage(_Response):
+    """One entry of `messages[]`, read only for the drafter prompt (T-005, ADR-009).
+
+    `content` is free text, usually written by the buyer: untrusted data that may hold
+    personal details or instructions. It is kept out of repr and model_dump so it is
+    never printed or logged by accident; read it only through the attribute.
+    """
+
+    posted_by: str | None = None
+    content: str | None = Field(default=None, exclude=True, repr=False)
+
+
 class Dispute(_HasLinks):
     """One dispute as returned by GET /v1/customer/disputes/{id}."""
 
@@ -77,6 +89,8 @@ class Dispute(_HasLinks):
     reason: NonEmpty
     amount: Money = Field(alias="dispute_amount")
     transactions: list[DisputedTransaction] = Field(default_factory=list, alias="disputed_transactions")
+    # Untrusted free text; excluded from repr and model_dump (see DisputeMessage).
+    messages: list[DisputeMessage] = Field(default_factory=list, exclude=True, repr=False)
 
 
 class DisputeListItem(_HasLinks):

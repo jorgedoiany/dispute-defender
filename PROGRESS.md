@@ -1,13 +1,14 @@
 # PROGRESS.md
 
 Last updated: 2026-11-10 (America/Santo_Domingo)
-Current task: none (T-004 done; next: T-005)
+Current task: none (T-005 done; next: T-006)
 
 ## Completed
 - T-001: public repository with an MIT license. `LICENSE` and the repo guides are on `main` and `.env` is untracked (checked locally). Public visibility and the About license were confirmed by the author; `gh` was not available to check them.
 - T-002: sandbox spike run with `scripts/spike_sandbox.py`. Decision: go (ADR-007). The "adjudicates" criterion was not met; see below.
 - T-003: PayPal REST client in `dispute_defender/paypal/`, offline tests, and a live smoke check with `scripts/smoke_client.py`. Results below.
 - T-004: claim schema and deterministic verifier in `dispute_defender/claims/` (ADR-008), offline tests, and a live read-only check with `scripts/smoke_verifier.py` on two sandbox disputes. Results below.
+- T-005: Bedrock drafter in `dispute_defender/drafter/` (ADR-009), offline tests, and three live happy-path runs with `scripts/smoke_drafter.py`. Results below.
 
 ## T-002 spike results
 All calls went to `api-m.sandbox.paypal.com`. Sandbox IDs: order `6HK11753C5145591C`, capture `54X87564PT289050U`, dispute `PP-R-HBV-10197617` (reason `MERCHANDISE_OR_SERVICE_NOT_RECEIVED`, 10.00 USD). Every dispute action also read the dispute before and after the call; all of those reads returned HTTP 200. Link names are shown as printed by the script, with underscores turned into hyphens.
@@ -132,10 +133,37 @@ Observations:
 - `evidences[0]` has no key that holds the submitted tracking info (keys observed: `date`, `dispute_life_cycle_stage`, `evidence_type`, `notes`, `source`). A read-back after sending can therefore confirm that evidence exists, not its content.
 - The verdicts show the verifier works on live sandbox data. They say nothing about whether a real dispute would be won.
 
+## T-005 drafter results
+Prerequisites (ADR-003): region `us-east-1`; primary `us.anthropic.claude-sonnet-4-6`, secondary `us.anthropic.claude-haiku-4-5-20251001-v1:0`; auth through the AWS CLI default profile and the boto3 credential chain. Not available to this account on 2026-11-10: `us.anthropic.claude-sonnet-5`, `us.anthropic.claude-sonnet-5-5`, `us.anthropic.claude-haiku-5-5` (`AccessDeniedException`); `us.anthropic.claude-sonnet-4-5-20250929-v1:0` (Legacy).
+
+Delivered:
+- `boto3` 1.44.0 (botocore 1.44.0), pinned and checked on Python 3.14.7.
+- `Dispute.messages` (`posted_by`, `content`), excluded from `model_dump` and `repr`.
+- `dispute_defender/drafter/`: output schema and `submit_claims` tool spec, prompt builder (fact allowlist, untrusted buyer-message block), `ModelClient` interface, `BedrockModelClient`, `draft_claims()` with output validation. Design in ADR-009.
+- `scripts/smoke_drafter.py`.
+- Offline tests: `tests/test_drafter_schema.py`, `tests/test_drafter_prompt.py`, `tests/test_bedrock_client.py` (botocore Stubber), `tests/test_drafter.py` (fake client, including prompt-injection cases), plus new `Dispute.messages` tests in `tests/test_models.py`. The Bedrock fixture is hand-written and labelled.
+
+Live runs, 2026-11-10, run by the author with `scripts/smoke_drafter.py` against the PayPal sandbox (GET only) and Bedrock `us-east-1`, with the fixed test merchant record. Nothing was sent to PayPal. Results as reported by the author:
+
+| # | Model | Dispute (stage / status) | Stop | Tokens in / out | Schema | Claims | Verdicts |
+|---|---|---|---|---|---|---|---|
+| 1 | primary `us.anthropic.claude-sonnet-4-6` | `PP-R-KXL-10197854` (`INQUIRY` / `WAITING_FOR_BUYER_RESPONSE`) | `tool_use` | 2024 / 267 | OK | 6 | 6 VERIFIED |
+| 2 | primary `us.anthropic.claude-sonnet-4-6` | `PP-R-HBV-10197617` (`CHARGEBACK` / `UNDER_REVIEW`) | `tool_use` | 2015 / 266 | OK | 6 | 6 VERIFIED |
+| 3 | secondary `us.anthropic.claude-haiku-4-5-20251001-v1:0` | `PP-R-KXL-10197854` (`INQUIRY` / `WAITING_FOR_BUYER_RESPONSE`) | `tool_use` | 2023 / 267 | OK | 6, identical to run 1 | 6 VERIFIED |
+
+Observations:
+- Both models accepted the forced `toolChoice` and the generated schema (a discriminated union with `$ref`s inlined); no flattening was needed. This is verified only for these two models.
+- The live runs are happy-path runs with a fixed test merchant record. They show the pipeline works end to end; they do not measure model accuracy (T-007).
+- Invalid-output rejection cannot be forced live; it is evidenced by offline tests only.
+- The optional live prompt-injection run was not done. FLAGGED did not come up live.
+
 ## In progress
 Nothing.
 
 ## Verification
+- T-005: `.venv/bin/python -m pytest`: 262 passed, offline (2026-11-10); 115 of them added in T-005. Bedrock is never called in tests: botocore's Stubber or a fake client answers, and `tests/conftest.py` clears AWS env vars, hides the profile files and blocks botocore's HTTP send.
+- T-005: `py_compile` and `--help` on `scripts/smoke_drafter.py` passed offline before the live runs; live runs: see the T-005 table.
+- T-005: secret scan (AWS access key IDs, AWS secret key names, the PayPal client ID and secret matched without printing them, AWS ARNs, 12-digit account-like numbers, plus git history): no secrets. The only secret-key-name matches are an env var name in `tests/conftest.py` and a fake `"testing"` key in `tests/test_bedrock_client.py`.
 - T-004: `.venv/bin/python -m pytest`: 147 passed, offline (2026-11-10).
 - T-004: `py_compile` and `show --help` on `scripts/smoke_client.py` passed; the two live `show --nested-keys` runs are listed above.
 - T-004: `py_compile` and `--help` on `scripts/smoke_verifier.py` passed; an offline dry run against the hand-written fixture met 8/8 expectations before the live runs.
@@ -148,19 +176,16 @@ Nothing.
 - T-002 sandbox runs: see the T-002 table.
 - Not run: `require-evidence`, `send-message --format multipart`, provide-evidence with a file.
 
-## T-005 prerequisites (decided 2026-11-10)
-Recorded in ADR-003, AGENTS.md and `.env.example`. The author ran a minimal Bedrock Converse call from their AWS account on 2026-11-10; it was not run from this repo.
-- Region `us-east-1`. Primary model `us.anthropic.claude-sonnet-4-6` and secondary `us.anthropic.claude-haiku-4-5-20251001-v1:0` both responded OK.
-- Not available to this account: `us.anthropic.claude-sonnet-5`, `us.anthropic.claude-sonnet-5-5`, `us.anthropic.claude-haiku-5-5` (`AccessDeniedException`); `us.anthropic.claude-sonnet-4-5-20250929-v1:0` (Legacy).
-- Auth: AWS CLI default profile through the boto3 credential chain; no AWS keys in the repo.
-- No AWS SDK dependency is installed yet; adding it is part of T-005.
-
 ## Blockers
 - None.
 
 ## Next steps
-1. Start T-005 (model drafter on Bedrock) with the model and auth in ADR-003; read the model ID from `BEDROCK_MODEL_ID`. The drafter must output claims that `Claim` accepts, using the claim types in ADR-008. `messages[0].content` is free text written by the buyer; treat it as untrusted data when building the model prompt.
-2. In T-005/T-006, decide whether free text in the response is rendered from verified claims or shown as unverified (ADR-008).
+1. Start T-006 (approval page and send, ADR-004):
+   - A FastAPI page that shows the dispute, each drafted claim with its verdict and reason, the rendered response, and Approve / Reject.
+   - A pure template renderer that builds the response text from VERIFIED claims only (ADR-009); no model text reaches PayPal or the buyer.
+   - BLOCKED claims can never be sent. FLAGGED claims are left out unless the merchant explicitly confirms each one.
+   - Approving sends the response in the sandbox, then the page shows the dispute's new state read back from PayPal, never assumed.
+2. Optional, only if time remains: the live prompt-injection run (a buyer message with an injection posted in the sandbox, then `scripts/smoke_drafter.py`).
 
 ## Resume instruction
-Read AGENTS.md and TASKS.md, confirm the current state, then continue with T-005 using the model, region and auth in ADR-003.
+Read AGENTS.md and TASKS.md, confirm the current state, then continue with T-006.

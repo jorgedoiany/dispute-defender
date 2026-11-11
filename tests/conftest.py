@@ -29,6 +29,28 @@ def _no_real_env(monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv(name, raising=False)
 
 
+AWS_ENV = (
+    "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_PROFILE", "AWS_DEFAULT_PROFILE",
+    "AWS_REGION", "AWS_DEFAULT_REGION", "BEDROCK_MODEL_ID", "BEDROCK_MODEL_ID_SECONDARY",
+)
+
+
+@pytest.fixture(autouse=True)
+def _no_real_aws(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """No test may read the real AWS profile or reach AWS. botocore sends through urllib3,
+    which `responses` does not cover, so its HTTP send is blocked here as well."""
+    for name in AWS_ENV:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("AWS_CONFIG_FILE", str(tmp_path / "no-aws-config"))
+    monkeypatch.setenv("AWS_SHARED_CREDENTIALS_FILE", str(tmp_path / "no-aws-credentials"))
+    monkeypatch.setenv("AWS_EC2_METADATA_DISABLED", "true")
+
+    def blocked(*_args: Any, **_kwargs: Any) -> Any:
+        raise RuntimeError("network access to AWS is disabled in tests")
+
+    monkeypatch.setattr("botocore.httpsession.URLLib3Session.send", blocked)
+
+
 @pytest.fixture(autouse=True)
 def mocked() -> Any:
     """Every HTTP call goes through `responses`; an unregistered URL raises ConnectionError."""

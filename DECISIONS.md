@@ -9,6 +9,7 @@
 - ADR-006: Open-source license (Accepted: MIT)
 - ADR-007: Go with Dispute Defender after the sandbox spike (Accepted)
 - ADR-008: Claim schema and deterministic verdict rules (Accepted)
+- ADR-009: Bedrock drafter returns claims only, through a forced tool (Accepted)
 
 ## Entry template
 ### ADR-[number]: [title]
@@ -162,3 +163,30 @@ ADR-002 requires every claim in a draft to be checked by code before the merchan
 - Fewer claim types are supported than a full response would need; others are FLAGGED.
 - The live value formats of the transaction fields were confirmed on two sandbox disputes, one sample each (`PP-R-KXL-10197854` and `PP-R-HBV-10197617`, T-004): both passed the model, so `create_time` had a timezone, `gross_amount` parsed as money and `seller_protection_eligible` was a JSON boolean. Two samples do not prove PayPal's schema; a different format on another dispute would fail the dispute read at the boundary.
 - The verifier checks structured claims only. Any free text in the final response must be rendered from verified claims or treated as unverified; which of the two is decided in T-005/T-006.
+
+### ADR-009: Bedrock drafter returns claims only, through a forced tool
+- Date: 2026-11-10
+- Status: Accepted
+- Supersedes: none
+
+#### Context
+ADR-002 says the model drafts structured claims and code checks them; ADR-003 chose Claude on Amazon Bedrock; ADR-008 defined the claims and the verifier and left open how free text in the final response is handled. The dispute's `messages[].content` is free text, mostly written by the buyer, and may contain instructions aimed at the model (prompt injection).
+#### Decision
+- **Structured output.** The drafter uses the Bedrock Converse API (boto3) with one tool, `submit_claims`, forced through `toolChoice`. The tool's input schema is generated from a pydantic model (`DraftOutput`) with every `$ref` inlined. No extended thinking and no temperature are sent.
+- **Validation.** The output is accepted only if the model stopped with `tool_use` and called `submit_claims` exactly once with input that passes `DraftOutput`. Otherwise the whole output is rejected (`DraftRejected`) and nothing from it is passed on.
+- **Schema.** Claim types are limited to the ADR-008 types, each with one allowed source (`tracking_number` and `carrier` only from `merchant_record`); no extra fields; strict JSON types; 1 to 20 claims. Value formats (decimal strings, `YYYY-MM-DD` dates, currency codes) are left to the verifier, which BLOCKS a bad value, so the format rules live in one place. A drift test keeps the drafter's types and sources equal to the verifier's rules.
+- **Claims only.** The model writes no text for the buyer or PayPal. The text sent to PayPal is rendered by a template from VERIFIED claims only; the renderer is built in T-006. This resolves ADR-008's open consequence on free text: it is rendered from verified claims, never written by the model.
+- **Prompt allowlist.** Only these facts reach the model: the dispute's reason, status, stage and amount; from a single disputed transaction, `seller_transaction_id`, the UTC transaction date (computed by code), `gross_amount` and `seller_protection_eligible`; from the merchant record, `tracking_number` and `carrier`. Buyer details (name, email, buyer transaction ID, items) never do.
+- **Buyer messages are untrusted data.** They go in a separate delimited block: the last 5 non-empty messages, at most 1,000 characters each and 4,000 in total, with control and bidi characters removed and `<` / `>` escaped so the text cannot close the block. The system prompt says never to follow instructions there or copy values from it. `Dispute.messages` and its content are excluded from `model_dump` and `repr`.
+- **Client.** A small `ModelClient` interface, with `BedrockModelClient` as the real implementation and a fake in tests. Timeouts are 5 s connect and 60 s read with botocore retries off; only `ThrottlingException` is retried, at most 3 attempts (1 s, then 2 s). Errors are typed and their messages hold only an error code, HTTP status, request ID or class name, never the prompt, model output values, AWS's message text or credentials.
+- Region and model IDs come from the environment (ADR-003).
+#### Alternatives
+- Ask for JSON in plain text and parse it: no schema guidance for the model and more ways to fail.
+- Let the model write the response text and check it afterwards: free text cannot be checked deterministically.
+- Drop only the invalid claims and keep the rest: not chosen; a malformed output points to a model problem, and rejecting all of it is simpler and safer.
+- Enforce value formats in the drafter schema too: would duplicate the verifier's rules and let them drift.
+#### Consequences
+- The forced `toolChoice` and the generated schema (a discriminated union with `$ref`s inlined) were verified only for `us.anthropic.claude-sonnet-4-6` and `us.anthropic.claude-haiku-4-5-20251001-v1:0`, in three live runs on 2026-11-10 (PROGRESS.md). Behaviour on any other model is unverified; changing `BEDROCK_MODEL_ID` needs a new live check. If a model refuses a forced tool, the call fails as a `ModelCallError`; it does not fall back silently.
+- Fencing buyer messages reduces prompt-injection risk but cannot rule it out. Safety rests on the schema, the verifier, rendering only VERIFIED claims and merchant approval. No live run has put an injection in front of the real model; offline tests show that manipulated claims are blocked or flagged.
+- A VERIFIED claim means the model copied a value that matches PayPal or the merchant record. It says nothing about whether the response would win the dispute. Model accuracy is measured in T-007.
+- Every live drafter run is a billed Bedrock call.
