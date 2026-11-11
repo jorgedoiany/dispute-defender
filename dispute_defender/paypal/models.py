@@ -6,9 +6,18 @@ buyer details, is ignored at the boundary and never enters app objects.
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, SecretStr, StrictBool, StringConstraints
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    StrictBool,
+    StringConstraints,
+    field_validator,
+)
 
 NonEmpty = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
@@ -91,6 +100,16 @@ class Dispute(_HasLinks):
     transactions: list[DisputedTransaction] = Field(default_factory=list, alias="disputed_transactions")
     # Untrusted free text; excluded from repr and model_dump (see DisputeMessage).
     messages: list[DisputeMessage] = Field(default_factory=list, exclude=True, repr=False)
+    # Key names of `allowed_response_options`, for display only (ADR-010). Its content was
+    # never inspected live, so it is never a send condition and any other shape gives [].
+    response_option_names: list[str] = Field(default_factory=list, alias="allowed_response_options")
+
+    @field_validator("response_option_names", mode="before")
+    @classmethod
+    def _option_names(cls, value: Any) -> list[str]:
+        if not isinstance(value, dict):
+            return []
+        return sorted(key for key in value if isinstance(key, str))
 
 
 class DisputeListItem(_HasLinks):
