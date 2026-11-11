@@ -6,6 +6,7 @@ before the merchant sees it, and no model free text is ever sent to PayPal.
 from .bedrock import BedrockModelClient
 from .client import ModelClient, ModelRequest, ModelResponse, ToolUse
 from .config import ModelConfig, load_model_config
+from .drafter import Draft, draft_claims, validate_response
 from .errors import (
     DrafterError,
     DraftRejected,
@@ -30,6 +31,7 @@ __all__ = [
     "MAX_CLAIMS",
     "TOOL_NAME",
     "BedrockModelClient",
+    "Draft",
     "DraftOutput",
     "DraftRejected",
     "DrafterError",
@@ -45,9 +47,11 @@ __all__ = [
     "ToolUse",
     "build_prompt",
     "buyer_messages",
+    "draft_claims",
     "facts",
     "load_model_config",
     "to_claims",
     "tool_input_schema",
     "tool_spec",
+    "validate_response",
 ]
