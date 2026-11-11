@@ -275,7 +275,7 @@ Judges may have no PayPal sandbox account or AWS credentials, and making an answ
 - **Data.** `dispute_defender/replay/data/replay.json`, labelled `"simulated": true`, with a source label per dispute shown on the page:
   1. Scenario N1 (simulated, hand-written for T-007) with the model output recorded in the T-007 live run (primary model, repetition 1), rebuilt from the recorded claims.
   2. A hand-written dispute in `WAITING_FOR_BUYER_RESPONSE` without the `provide_evidence` link; refused before any model call.
-  3. A hand-written dispute based on scenario N2 without `seller_protection_eligible`, with its own transaction ID. Its model output is the recorded N2 output with the transaction ID adapted to this dispute, plus SIMULATED injected errors (amount 250.00 instead of 25.00, and a seller protection claim), so a BLOCKED and a FLAGGED claim can be seen.
+  3. A hand-written dispute based on scenario N2 without `seller_protection_eligible`, with its own transaction ID. Its model output is the recorded N2 output with the transaction ID adapted to this dispute and one SIMULATED injected error (amount 250.00 instead of 25.00), which is BLOCKED. The recorded seller protection claim is kept; because this dispute's data has no `seller_protection_eligible`, the verifier has nothing to check it against and FLAGS it. So a BLOCKED and a FLAGGED claim can be seen.
 - **Hygiene.** No real PayPal IDs, names, emails, request IDs or secrets in replay data; a test checks this and checks the data's provenance against `evaluation/scenarios/` and `evaluation/results/raw-2026-11-11.jsonl`.
 #### Alternatives
 - An environment variable or `.env` setting: not chosen; a stray value could switch the app to fake data without the user noticing.
