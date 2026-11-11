@@ -20,6 +20,7 @@ Verified on 2026-11-09 with Python 3.14 (install and test commands re-verified w
   2. `.venv/bin/python scripts/spike_sandbox.py capture --order-id ID`
   3. As the sandbox buyer, in the sandbox Resolution Center, report "item not received" for that payment.
   4. `.venv/bin/python scripts/spike_sandbox.py list` until the dispute appears, then `show --dispute-id ID` until it is `WAITING_FOR_SELLER_RESPONSE` with the `provide-evidence` link (in T-006 it was first `UNDER_REVIEW`, then changed a few minutes later).
+- UI preview (offline): `.venv/bin/python scripts/preview_ui.py [--out DIR]`. Renders every page (list, dispute, dispute refused, draft and result in dry and live mode, state, refusal and error pages) through the real app with test fixtures, a fake model and a fake CSRF token, and writes static HTML to `ui-preview/` (gitignored); open `ui-preview/index.html`. No PayPal, no Bedrock, no network, no `.env`. Needs `requirements-dev.txt`. Verified on 2026-11-10 (T-012).
 - Test: `.venv/bin/python -m pytest` (offline; no credentials or network needed; AWS env, profile files and botocore's HTTP send are blocked in `tests/conftest.py`). Re-verified in T-006 on 2026-11-10, including the renderer, send gate, web app and CSRF tests.
 - Client smoke check: `.venv/bin/python scripts/smoke_client.py <step> [--dispute-id ID]`. Steps: `token`, `list`, `show`, `provide-evidence`, `send-message`. Reads `.env`; sandbox only. All five steps verified against the sandbox in T-003 (see PROGRESS.md). `show --nested-keys` also prints key names (no values) one level down in `disputed_transactions[0]`, `evidences[0]`, `messages[0]` and `offer`; verified in T-004.
 - Verifier smoke check: `.venv/bin/python scripts/smoke_verifier.py --dispute-id PP-R-KXL-10197854|PP-R-HBV-10197617`. Read only (GET); runs fixed test claims through `verify_claims` and prints verdicts and reasons only. Reads `.env`; sandbox only. Verified on both disputes in T-004.
@@ -36,6 +37,7 @@ Only paths confirmed in the brief are listed. Add others when they exist.
 - `scripts/smoke_client.py`: live sandbox check of the app's PayPal client, one step per run (T-003)
 - `scripts/smoke_verifier.py`: live read-only check of the claim verifier on the two sandbox disputes (T-004)
 - `scripts/smoke_drafter.py`: live check of the drafter: PayPal GET, one Bedrock call, verifier (T-005)
+- `scripts/preview_ui.py`: offline static preview of every page of the approval app (T-012)
 - `dispute_defender/`: the app package
   - `paypal/config.py`: `PayPalConfig`, `load_config()` from environment variables, sandbox host guard
   - `paypal/errors.py`: `PayPalError` and subclasses; messages carry only HTTP status, name, issue codes and debug_id
