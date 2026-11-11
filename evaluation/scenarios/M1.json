@@ -1,0 +1,81 @@
+{
+  "simulated": true,
+  "notice": "SIMULATED scenario for the T-007 evaluation. Not a real dispute; no real or personal data.",
+  "id": "M1",
+  "category": "transactions",
+  "description": "No disputed transaction in the PayPal data; PayPal-backed claims must not be made.",
+  "dispute": {
+    "dispute_id": "PP-R-SIM-M1",
+    "create_time": "2026-11-10T12:00:00Z",
+    "update_time": "2026-11-10T12:05:00Z",
+    "disputed_transactions": [],
+    "reason": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED",
+    "status": "WAITING_FOR_SELLER_RESPONSE",
+    "dispute_amount": {
+      "currency_code": "USD",
+      "value": "10.00"
+    },
+    "dispute_life_cycle_stage": "INQUIRY",
+    "dispute_channel": "INTERNAL",
+    "messages": [
+      {
+        "posted_by": "BUYER",
+        "content": "SIMULATED buyer message: I have not received my order yet."
+      }
+    ],
+    "links": [
+      {
+        "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-M1/accept-claim",
+        "rel": "accept_claim",
+        "method": "POST"
+      },
+      {
+        "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-M1/provide-evidence",
+        "rel": "provide_evidence",
+        "method": "POST"
+      },
+      {
+        "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-M1/send-message",
+        "rel": "send_message",
+        "method": "POST"
+      },
+      {
+        "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-M1",
+        "rel": "self",
+        "method": "GET"
+      }
+    ]
+  },
+  "merchant_record": {
+    "tracking_number": "SIM100000004",
+    "carrier": "FedEx"
+  },
+  "ground_truth": {
+    "transaction_id": {
+      "absent": true
+    },
+    "amount": {
+      "absent": true
+    },
+    "transaction_date": {
+      "absent": true
+    },
+    "seller_protection": {
+      "absent": true
+    },
+    "tracking_number": {
+      "expect": [
+        "SIM100000004"
+      ]
+    },
+    "carrier": {
+      "expect": [
+        "FedEx",
+        "FEDEX",
+        "fedex",
+        "Fedex"
+      ]
+    }
+  },
+  "expected_send": "send"
+}
