@@ -6,7 +6,7 @@ A merchant opens a PayPal sandbox dispute, reviews a drafted response whose ever
 Target dates: core build Nov 9-10; README, license, video and submission Nov 11 (deadline Nov 12, 12:00 PT).
 
 ## Current task
-T-010 (replay mode), time-boxed to about 2 hours, before T-008 (author decision, 2026-11-11). Implemented; the author's browser check and the PR are pending. Next: T-008.
+T-008 (README, license check and secrets scan), started 2026-11-11 on `docs/t-008-readme`. README first (commit 1), then the secrets scan (commit 2). The author sets the license in the GitHub About section.
 
 ## Backlog
 
@@ -118,10 +118,11 @@ T-010 (replay mode), time-boxed to about 2 hours, before T-008 (author decision,
 
 ### T-008: README, license check and secrets scan
 - Priority: P0
-- Status: Todo
+- Status: In progress
 - Depends on: T-006 (T-007 for the results section)
 - Acceptance criteria:
-  - [ ] README starts with what it does and the measured result, then setup and run steps, which PayPal sandbox and AI model are called, and known limitations
+  - [x] README starts with what it does and the measured result, then setup and run steps, which PayPal sandbox and AI model are called, and known limitations
+    - `README.md` written 2026-11-11; every evaluation number copied from `evaluation/results.md`, labelled simulated.
   - [ ] A fresh clone can follow the README to run the main path with sandbox credentials
   - [ ] Secrets scan run on the repo and history; result recorded in PROGRESS.md
   - [ ] License is visible in the About section
@@ -136,11 +137,11 @@ T-010 (replay mode), time-boxed to about 2 hours, before T-008 (author decision,
 
 ### T-010: Replay mode for judges without credentials
 - Priority: P2
-- Status: In progress
+- Status: Done (author's browser check done; merged in PR #9)
 - Depends on: T-006
 - Context: criterion reworded on 2026-11-11 (author): no PayPal response in the repo is a recording, so the replay data is described as what it is. Decisions in ADR-012.
 - Acceptance criteria:
-  - [x] Hand-written sandbox-shaped disputes and model outputs recorded on simulated scenarios can drive the flow, clearly labelled as replay and not the default (offline tests and a local uvicorn run with curl, 2026-11-11; browser check by the author pending)
+  - [x] Hand-written sandbox-shaped disputes and model outputs recorded on simulated scenarios can drive the flow, clearly labelled as replay and not the default (offline tests and a local uvicorn run with curl, 2026-11-11; browser check done by the author)
 
 ### T-011: Retry once with a new token after a 401
 - Priority: P2
@@ -173,3 +174,4 @@ T-010 (replay mode), time-boxed to about 2 hours, before T-008 (author decision,
 - T-005: Bedrock drafter in `dispute_defender/drafter/` (ADR-009), with offline tests and three live happy-path runs (two primary, one secondary). Invalid-output rejection is evidenced offline only; the live injection run was not done.
 - T-006: Approval page and send in `dispute_defender/response/` and `dispute_defender/web/` (ADR-010), with offline tests and a live dry run and live send in Chrome on sandbox dispute `PP-R-UXH-10198605`. "Blocked claims cannot be sent" is evidenced offline only.
 - T-007: Small evaluation on 24 simulated scenarios (ADR-011): live Part A (144 Bedrock calls, 0 model errors, M2 = 6 per model all from R2's unsupported claims, M3 = 0) and offline Part B (1,065 of 1,065 altered claims caught; altered merchant record is a known blind spot). Simulated data; not real-world accuracy.
+- T-010: Replay mode in `dispute_defender/replay/` (ADR-012), `--replay` flag only, three simulated disputes, offline tests, a local run with curl and the author's browser check. Merged in PR #9.

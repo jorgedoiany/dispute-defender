@@ -1,7 +1,7 @@
 # PROGRESS.md
 
 Last updated: 2026-11-11 (America/Santo_Domingo)
-Current task: T-010 replay mode (implemented; the author's browser check is pending; next: T-008)
+Current task: T-008 README, license check and secrets scan (README written; secrets scan next)
 
 ## Completed
 - T-001: public repository with an MIT license. `LICENSE` and the repo guides are on `main` and `.env` is untracked (checked locally). Public visibility and the About license were confirmed by the author; `gh` was not available to check them.
@@ -11,6 +11,7 @@ Current task: T-010 replay mode (implemented; the author's browser check is pend
 - T-005: Bedrock drafter in `dispute_defender/drafter/` (ADR-009), offline tests, and three live happy-path runs with `scripts/smoke_drafter.py`. Results below.
 - T-006: approval page and send in `dispute_defender/response/` and `dispute_defender/web/` (ADR-010), offline tests, and a live dry run and live send in Chrome on a new sandbox dispute. Results below.
 - T-007: small evaluation on 24 **simulated** scenarios (ADR-011): live Part A (144 Bedrock calls) and offline Part B (fault injection). Results below.
+- T-010: replay mode (ADR-012), three simulated disputes behind the `--replay` flag. Offline tests, a local run with curl, and the author's browser check. Merged in PR #9. Results below.
 
 ## T-002 spike results
 All calls went to `api-m.sandbox.paypal.com`. Sandbox IDs: order `6HK11753C5145591C`, capture `54X87564PT289050U`, dispute `PP-R-HBV-10197617` (reason `MERCHANDISE_OR_SERVICE_NOT_RECEIVED`, 10.00 USD). Every dispute action also read the dispute before and after the call; all of those reads returned HTTP 200. Link names are shown as printed by the script, with underscores turned into hyphens.
@@ -198,7 +199,10 @@ Not verified:
 - Concurrent requests, and browsers other than Chrome.
 
 ## In progress
-T-010: replay mode. Implemented and checked offline and on a local server; the author's browser check is pending (see the T-010 section).
+T-008: README, license check and secrets scan, on branch `docs/t-008-readme`.
+- Commit 1: `README.md`. The sections are: what it is, with a headline result labelled simulated; replay mode; evaluation results (simulated); how it works; running against the sandbox; sandbox notes and limitations; Disputes API feedback; structure; license. Every evaluation number is copied from `evaluation/results.md`. The Part B per-group rows were checked to sum to 1,065 (1,192 with the merchant-record, benign and local-date cases). Code checked: Approve calls the model again (`web/app.py:274`), so the README says each Draft and each Approve is one billed call. Each feedback point names the dispute and step from this file where it was seen. Screenshot spots are HTML comment placeholders, and the video link is a TODO. No code or tests were changed.
+- Not yet checked: a fresh clone following the README; the replay install with `requirements.txt` only.
+- Next: commit 2, a secrets scan of the working tree and full history, recorded here with counts and paths only. The author sets the license in GitHub About.
 
 ## T-010 replay mode results
 Decisions: ADR-012. Data, sources and what to type: `dispute_defender/replay/README.md`.
@@ -219,7 +223,7 @@ Checks:
 - 44 new offline tests in `tests/test_replay_data.py`, `tests/test_replay_clients.py`, `tests/test_replay_web.py` and `tests/test_replay_main.py`: provenance against `evaluation/scenarios/` and `evaluation/results/raw-2026-11-11.jsonl`; no real IDs, UUIDs, request IDs, emails or names beyond the `FAKE-...` placeholders; sockets blocked for the whole web flow; the REPLAY banner on every page including the 400, 403, 422 and PayPal error pages; BLOCKED and FLAGGED values never in the recorded payload; the recorded payload equals what `prepare_send` builds independently; a wrong tracking number or a hash mismatch records nothing; no environment variable or `.env` line enables replay; the flag never reads `.env` or builds a real client; mixed clients are refused; dry and live preview pages carry no replay text.
 - No existing test was edited.
 - Local run (2026-11-11): `python -m dispute_defender.web --replay --port 8765` under uvicorn, driven with curl and the browser's `Origin` header: dispute 1 draft 6 VERIFIED, approve showed the replay result and `UNDER_REVIEW`; dispute 3 draft 4 VERIFIED, 1 BLOCKED, 1 FLAGGED; dispute 2 refused.
-- Not done: the author's check in a browser.
+- The author's check in a browser: done (reported by the author, 2026-11-11). Merged in PR #9.
 
 Limits: no PayPal response in replay is a recording; model outputs are rebuilt from recorded claim values, not raw tool input, and dispute 3's is altered on purpose; no model variation, latency, tokens or API errors; the read-back is hand-written from the T-006 observation; dispute 2's refusal uses the real gate's wording ("PayPal does not offer provide-evidence ..."), where "PayPal" means the replay data; state is in memory and resets on restart.
 
@@ -298,10 +302,9 @@ Limits (full list in `results.md`): simulated scenarios written with knowledge o
 - None.
 
 ## Next steps
-0. T-010: the author checks replay mode in a browser (`.venv/bin/python -m dispute_defender.web --replay`, the three disputes in `dispute_defender/replay/README.md`), then opens the PR and marks T-010 Done. The README (T-008) can reuse the replay text in the T-010 PR description.
-1. T-008: README. Start with what it does and the measured result from `evaluation/results.md`, labelled as simulated, with the honest reading of M2 (6 per model, all from scenario R2's unsupported claims, which the verifier FLAGGED; not model value errors) and the blind spot (a wrong merchant record is not caught). Then setup and run steps, the PayPal sandbox and model used, and known limitations. Also a fresh-clone check, the secrets scan on the repo and history, and the license in the About section.
+1. T-008: README written (commit 1). Remaining: the secrets scan on the working tree and full history (commit 2), a fresh-clone check, screenshots and the video link in the README, the license in About (author), then the PR.
 2. T-009: demo video (under 3 minutes) and submission.
 3. Optional, only if time remains: the live prompt-injection run (T-005), T-011 (401 retry), T-012 (cosmetic fixes).
 
 ## Resume instruction
-Read AGENTS.md and TASKS.md, confirm the current state, then finish T-010 (browser check, PR) and continue with T-008.
+Read AGENTS.md and TASKS.md, confirm the current state, then continue T-008 on `docs/t-008-readme` (secrets scan after the author confirms).
