@@ -6,7 +6,7 @@ A merchant opens a PayPal sandbox dispute, reviews a drafted response whose ever
 Target dates: core build Nov 9-10; README, license, video and submission Nov 11 (deadline Nov 12, 12:00 PT).
 
 ## Current task
-T-006: Approval page and send (in progress, design in ADR-010).
+None started. Next: T-007.
 
 ## Backlog
 
@@ -78,16 +78,21 @@ T-006: Approval page and send (in progress, design in ADR-010).
 
 ### T-006: Approval page and send
 - Priority: P0
-- Status: In progress
+- Status: Done
 - Depends on: T-005
 - Acceptance criteria:
-  - [ ] A FastAPI page shows the dispute, each claim with its verification result, and Approve / Reject
-  - [ ] Blocked claims cannot be sent
-  - [ ] Approving sends the response in the sandbox and the page shows the dispute's new state read back from PayPal
-  - [ ] The final state shown is read back from PayPal after sending, never assumed; statuses change on their own and UNDER_REVIEW can be short-lived (T-002)
-- Design: ADR-010 (VERIFIED-only rendering, gate on the `provide_evidence` link, re-verify plus hash on approve, CSRF, local bind, dry by default, no persistence).
-- Note: if time runs out, the `GET /disputes/{id}/state` refresh route may be dropped (the merchant reloads the dispute page instead). The safety gates are never cut.
-- Note: the 401 retry is not part of T-006; see T-011.
+  - [x] A FastAPI page shows the dispute, each claim with its verification result, and Approve / Reject
+    - Live, 2026-11-10, in Chrome on sandbox dispute `PP-R-UXH-10198605`: the draft page showed all 6 claims VERIFIED with their reasons, the rendered text, the payload and Approve / Reject. Offline: `tests/test_web.py`.
+  - [x] Blocked claims cannot be sent
+    - Evidenced offline only: `tests/test_render.py`, `tests/test_send_gate.py` and `tests/test_web.py` (BLOCKED and FLAGGED values never reach the text or the POST body; the server re-verifies on approve and ignores verdicts and other fields from the browser). No BLOCKED or FLAGGED claim came up in the live runs.
+  - [x] Approving sends the response in the sandbox and the page shows the dispute's new state read back from PayPal
+    - Live, 2026-11-10: PayPal accepted provide-evidence (`PROOF_OF_FULFILLMENT`, tracking `122533485`, carrier `FEDEX`, the rendered text in `notes`). The result page showed the read-back `UNDER_REVIEW` / `INQUIRY`. "Accepted" does not mean the dispute would be won.
+  - [x] The final state shown is read back from PayPal after sending, never assumed; statuses change on their own and UNDER_REVIEW can be short-lived (T-002)
+    - Live: read-back at 02:14:36 UTC showed `UNDER_REVIEW` / `INQUIRY`; Refresh at 02:19:00 UTC showed `WAITING_FOR_BUYER_RESPONSE` / `INQUIRY`. Offline: the read-back test uses a state that differs from both the pre-send state and the ack.
+- Design: ADR-010 (VERIFIED-only rendering, gate on the `provide_evidence` link, re-verify plus hash on approve, CSRF, local bind, dry by default, no persistence), with notes after implementation.
+- The real-browser run found a bug the TestClient tests missed: `Referrer-Policy: no-referrer` made Chrome send `Origin: null`, and Draft was refused with 403. Fixed in `6ab9e33` (`same-origin`; `null` and foreign origins are still refused).
+- Not verified: PayPal's limit on `notes` length (the text sent was about 300 characters; the app's 2,000 cap is an assumption); carriers other than `FEDEX`; FLAGGED and BLOCKED claims live in the app (offline tests only); the content of submitted evidence (the API does not return it); concurrent requests; browsers other than Chrome; the unknown-outcome page (offline only).
+- The 401 retry is not part of T-006; see T-011. The `/state` refresh route was kept.
 
 ### T-007: Small evaluation
 - Priority: P1
@@ -133,6 +138,15 @@ T-006: Approval page and send (in progress, design in ADR-010).
   - [ ] On a 401 from an API call (not the token request), the client drops the cached token, fetches a new one and retries the call once
   - [ ] Offline tests: 401, then a new token, then 200 succeeds; two 401s in a row raise the error
 
+### T-012: Cosmetic fixes on the approval page
+- Priority: P2
+- Status: Todo
+- Depends on: T-006
+- Context: seen in the T-006 live run in Chrome.
+- Acceptance criteria:
+  - [ ] Status values do not wrap in the disputes table
+  - [ ] The dry-run success message uses a neutral or success style, not the red error border
+
 ## Later
 - Appeals and escalation flows
 - Multiple merchants or accounts
@@ -144,3 +158,4 @@ T-006: Approval page and send (in progress, design in ADR-010).
 - T-003: PayPal REST client in `dispute_defender/paypal/`, with offline tests and a live sandbox smoke check.
 - T-004: Claim schema and deterministic verifier in `dispute_defender/claims/` (ADR-008), with offline tests and a live read-only check on two sandbox disputes. FLAGGED was exercised offline only.
 - T-005: Bedrock drafter in `dispute_defender/drafter/` (ADR-009), with offline tests and three live happy-path runs (two primary, one secondary). Invalid-output rejection is evidenced offline only; the live injection run was not done.
+- T-006: Approval page and send in `dispute_defender/response/` and `dispute_defender/web/` (ADR-010), with offline tests and a live dry run and live send in Chrome on sandbox dispute `PP-R-UXH-10198605`. "Blocked claims cannot be sent" is evidenced offline only.

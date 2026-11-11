@@ -1,7 +1,7 @@
 # PROGRESS.md
 
 Last updated: 2026-11-10 (America/Santo_Domingo)
-Current task: T-006 (in progress)
+Current task: none (T-006 done; next: T-007)
 
 ## Completed
 - T-001: public repository with an MIT license. `LICENSE` and the repo guides are on `main` and `.env` is untracked (checked locally). Public visibility and the About license were confirmed by the author; `gh` was not available to check them.
@@ -9,6 +9,7 @@ Current task: T-006 (in progress)
 - T-003: PayPal REST client in `dispute_defender/paypal/`, offline tests, and a live smoke check with `scripts/smoke_client.py`. Results below.
 - T-004: claim schema and deterministic verifier in `dispute_defender/claims/` (ADR-008), offline tests, and a live read-only check with `scripts/smoke_verifier.py` on two sandbox disputes. Results below.
 - T-005: Bedrock drafter in `dispute_defender/drafter/` (ADR-009), offline tests, and three live happy-path runs with `scripts/smoke_drafter.py`. Results below.
+- T-006: approval page and send in `dispute_defender/response/` and `dispute_defender/web/` (ADR-010), offline tests, and a live dry run and live send in Chrome on a new sandbox dispute. Results below.
 
 ## T-002 spike results
 All calls went to `api-m.sandbox.paypal.com`. Sandbox IDs: order `6HK11753C5145591C`, capture `54X87564PT289050U`, dispute `PP-R-HBV-10197617` (reason `MERCHANDISE_OR_SERVICE_NOT_RECEIVED`, 10.00 USD). Every dispute action also read the dispute before and after the call; all of those reads returned HTTP 200. Link names are shown as printed by the script, with underscores turned into hyphens.
@@ -157,10 +158,52 @@ Observations:
 - Invalid-output rejection cannot be forced live; it is evidenced by offline tests only.
 - The optional live prompt-injection run was not done. FLAGGED did not come up live.
 
+## T-006 approval page and send results
+Delivered:
+- `dispute_defender/response/`: `render_notes()` (fixed template from VERIFIED claims only, canonical carrier), `prepare_send()` send gate, the fixed carrier list (`FEDEX` only).
+- `dispute_defender/web/`: FastAPI app with Jinja2 templates (autoescape on), single-use HMAC CSRF tokens, Origin and Host checks, security headers, safe error pages, the unknown-outcome page, and `python -m dispute_defender.web` on 127.0.0.1 only. Dry by default (`DISPUTE_DEFENDER_SEND_MODE`).
+- `Dispute.response_option_names`: key names of `allowed_response_options`, shown for information, never a send condition.
+- Dependencies, pinned and checked on Python 3.14.7: `fastapi` 0.162.4 (starlette 1.10.0), `jinja2` 3.1.6, `python-multipart` 0.0.33, `uvicorn` 0.54.0; dev `httpx` 0.28.1. Starlette warns that `httpx` with its TestClient is deprecated in favour of `httpx2`; the approved pin was kept.
+- Offline tests: `tests/test_render.py`, `tests/test_send_gate.py`, `tests/test_web.py`, `tests/test_csrf.py`, plus `allowed_response_options` tests in `tests/test_models.py`.
+
+Live runs, 2026-11-10 (America/Santo_Domingo; times below in UTC), run by the author in Chrome against the PayPal sandbox and Bedrock. Results as reported by the author.
+
+1. **Real-browser bug.** The first Draft click was refused with 403 "Cross-origin request refused". Cause: the app sent `Referrer-Policy: no-referrer`, and with that policy Chrome sends `Origin: null` on the page's own form POSTs. The TestClient tests did not catch it. Fixed in `6ab9e33` with `Referrer-Policy: same-origin`; `null` and foreign origins are still refused (ADR-010 notes). The fix was reproduced and checked locally against uvicorn with a stubbed PayPal session and a fake model (no live calls) before the live runs.
+2. **New dispute** `PP-R-UXH-10198605`, made with `scripts/spike_sandbox.py create-order`, buyer approval in the browser, `capture`, and an "item not received" case opened by the sandbox buyer. It read `UNDER_REVIEW` right after creation and `WAITING_FOR_SELLER_RESPONSE` / `INQUIRY` a few minutes later.
+3. **Dry run** (default mode): Draft, then Approve. All 6 claims VERIFIED: 4 against PayPal data (transaction ID, amount, date, seller protection) and 2 against the test merchant record (tracking `122533485`, carrier `FEDEX`; a test record, not a real shipment). The pages showed the DRY RUN banner, the payload and the rendered text. The read-back was labelled "not changed by this run": still `WAITING_FOR_SELLER_RESPONSE` with the `provide-evidence` link.
+4. **Live send** (`DISPUTE_DEFENDER_SEND_MODE=live`, LIVE SANDBOX SEND banner): Draft, then Approve. PayPal accepted provide-evidence: `PROOF_OF_FULFILLMENT` with the tracking info and the rendered text (about 300 characters) in `notes`. By design each Draft and each Approve is one billed Bedrock call, so 4 calls across the two runs.
+
+State timeline of `PP-R-UXH-10198605`:
+
+| When (UTC) | Source | Status / stage | Links |
+|---|---|---|---|
+| right after creation | `spike_sandbox.py` | `UNDER_REVIEW` | not recorded |
+| a few minutes later, and through the dry run | `spike_sandbox.py` / app | `WAITING_FOR_SELLER_RESPONSE` / `INQUIRY` | includes provide-evidence |
+| 02:14:36 | app read-back after the live send | `UNDER_REVIEW` / `INQUIRY` | self |
+| 02:19:00 | app Refresh (`/state`) | `WAITING_FOR_BUYER_RESPONSE` / `INQUIRY` | accept-claim, escalate, self, send-message |
+
+Observations:
+- `allowed_response_options` held only `accept_claim` while the `provide_evidence` link was offered, and provide-evidence was then accepted. This confirms the gate on the link (ADR-010).
+- Same pattern as T-002 and T-003: after evidence, `UNDER_REVIEW` with only the self link, then `WAITING_FOR_BUYER_RESPONSE` a few minutes later without any call from the app. The read-back and Refresh showed it as it happened.
+- "Accepted by PayPal" means PayPal took the submission; it does not show the evidence would win a real case.
+- Cosmetic, moved to T-012: status text wraps in the disputes table; the dry-run success message uses the red error border.
+
+Not verified:
+- PayPal's limit on `notes` length: the text sent was about 300 characters; the app's 2,000-character cap is an assumption.
+- Carriers other than `FEDEX`.
+- FLAGGED and BLOCKED claims in the app live: offline tests only.
+- The content of submitted evidence: the API does not return it, so the read-back confirms the state, not what was stored.
+- The unknown-outcome page (timeouts, dropped connections, 5xx): offline tests only.
+- Concurrent requests, and browsers other than Chrome.
+
 ## In progress
 Nothing.
 
 ## Verification
+- T-006: `.venv/bin/python -m pytest`: 446 passed, offline (2026-11-10); 184 of them added in T-006. One warning: Starlette's deprecation notice for `httpx` with its TestClient. PayPal is mocked with `responses` and the model is a fake client.
+- T-006: the Origin bug was reproduced and the fix checked against the real app under uvicorn on 127.0.0.1 with a stubbed PayPal session and a fake model: real origin 200, `Origin: null` 403, header `Referrer-Policy: same-origin`.
+- T-006: live dry run and live send in Chrome: see the T-006 section.
+- T-006: secret scan (AWS access key IDs, AWS secret key names, the PayPal client ID and secret matched without printing them, AWS ARNs, 12-digit account-like numbers, plus git history): no secrets. The only secret-key-name matches are the same two as in T-005.
 - T-005: `.venv/bin/python -m pytest`: 262 passed, offline (2026-11-10); 115 of them added in T-005. Bedrock is never called in tests: botocore's Stubber or a fake client answers, and `tests/conftest.py` clears AWS env vars, hides the profile files and blocks botocore's HTTP send.
 - T-005: `py_compile` and `--help` on `scripts/smoke_drafter.py` passed offline before the live runs; live runs: see the T-005 table.
 - T-005: secret scan (AWS access key IDs, AWS secret key names, the PayPal client ID and secret matched without printing them, AWS ARNs, 12-digit account-like numbers, plus git history): no secrets. The only secret-key-name matches are an env var name in `tests/conftest.py` and a fake `"testing"` key in `tests/test_bedrock_client.py`.
@@ -180,12 +223,9 @@ Nothing.
 - None.
 
 ## Next steps
-1. Start T-006 (approval page and send, ADR-004):
-   - A FastAPI page that shows the dispute, each drafted claim with its verdict and reason, the rendered response, and Approve / Reject.
-   - A pure template renderer that builds the response text from VERIFIED claims only (ADR-009, ADR-010); no model text reaches PayPal or the buyer.
-   - Only VERIFIED claims can be sent. BLOCKED and FLAGGED claims are shown with their reasons but never rendered or sent, and the merchant cannot override a verdict (ADR-010; this replaces the earlier idea of letting the merchant confirm FLAGGED claims).
-   - Approving sends the response in the sandbox, then the page shows the dispute's new state read back from PayPal, never assumed.
-2. Optional, only if time remains: the live prompt-injection run (a buyer message with an injection posted in the sandbox, then `scripts/smoke_drafter.py`).
+1. T-007: small evaluation. About 20-30 disputes with seeded errors (wrong amount, date or tracking), simulated and labelled as simulated (ADR-007). Metric: wrong claims that reach the send step, model-only draft vs. draft with verifier. Write down the result and its limits.
+2. T-008: README (what it does and the measured result first, then setup and run steps, the PayPal sandbox and model used, known limitations), a fresh-clone check, the secrets scan on the repo and history, and the license in the About section.
+3. Optional, only if time remains: the live prompt-injection run (T-005), T-011 (401 retry), T-012 (cosmetic fixes).
 
 ## Resume instruction
-Read AGENTS.md and TASKS.md, confirm the current state, then continue with T-006.
+Read AGENTS.md and TASKS.md, confirm the current state, then continue with T-007.
