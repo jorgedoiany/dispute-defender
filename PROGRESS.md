@@ -201,7 +201,8 @@ Not verified:
 ## In progress
 T-008: README, license check and secrets scan, on branch `docs/t-008-readme`.
 - Commit 1: `README.md`. The sections are: what it is, with a headline result labelled simulated; replay mode; evaluation results (simulated); how it works; running against the sandbox; sandbox notes and limitations; Disputes API feedback; structure; license. Every evaluation number is copied from `evaluation/results.md`. The Part B per-group rows were checked to sum to 1,065 (1,192 with the merchant-record, benign and local-date cases). Code checked: Approve calls the model again (`web/app.py:274`), so the README says each Draft and each Approve is one billed call. Each feedback point names the dispute and step from this file where it was seen. Screenshot spots are HTML comment placeholders, and the video link is a TODO. No code or tests were changed.
-- Not yet checked: a fresh clone following the README; the replay install with `requirements.txt` only.
+- Fresh-clone check (author, 2026-11-11), replay only: the author cloned `docs/t-008-readme` into a temp directory, created a venv on Python 3.14.7, ran `pip install -r requirements.txt` (no errors) and `python -m dispute_defender.web --replay`, and the disputes list loaded. The README's dispute walkthrough was not part of this check.
+- Not checked in a fresh clone: the sandbox-credentials path (`.env` from `.env.example`, dry run, live send).
 - Next: commit 2, a secrets scan of the working tree and full history, recorded here with counts and paths only. The author sets the license in GitHub About.
 
 ## T-010 replay mode results

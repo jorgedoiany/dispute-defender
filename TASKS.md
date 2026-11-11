@@ -124,6 +124,8 @@ T-008 (README, license check and secrets scan), started 2026-11-11 on `docs/t-00
   - [x] README starts with what it does and the measured result, then setup and run steps, which PayPal sandbox and AI model are called, and known limitations
     - `README.md` written 2026-11-11; every evaluation number copied from `evaluation/results.md`, labelled simulated.
   - [ ] A fresh clone can follow the README to run the main path with sandbox credentials
+    - [x] Replay path only (author, 2026-11-11): fresh clone of `docs/t-008-readme` in a temp directory, venv on Python 3.14.7, `pip install -r requirements.txt` with no errors, `python -m dispute_defender.web --replay` loaded the disputes list.
+    - [ ] Not checked: the sandbox-credentials path (`.env`, dry run, live send) in a fresh clone.
   - [ ] Secrets scan run on the repo and history; result recorded in PROGRESS.md
   - [ ] License is visible in the About section
 
