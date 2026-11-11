@@ -1,7 +1,7 @@
 # PROGRESS.md
 
 Last updated: 2026-11-11 (America/Santo_Domingo)
-Current task: T-010 replay mode (implemented; the author's browser check is pending; next: T-008)
+Current task: T-008 README, license check and secrets scan (README written; secrets scan next)
 
 ## Completed
 - T-001: public repository with an MIT license. `LICENSE` and the repo guides are on `main` and `.env` is untracked (checked locally). Public visibility and the About license were confirmed by the author; `gh` was not available to check them.
@@ -11,6 +11,7 @@ Current task: T-010 replay mode (implemented; the author's browser check is pend
 - T-005: Bedrock drafter in `dispute_defender/drafter/` (ADR-009), offline tests, and three live happy-path runs with `scripts/smoke_drafter.py`. Results below.
 - T-006: approval page and send in `dispute_defender/response/` and `dispute_defender/web/` (ADR-010), offline tests, and a live dry run and live send in Chrome on a new sandbox dispute. Results below.
 - T-007: small evaluation on 24 **simulated** scenarios (ADR-011): live Part A (144 Bedrock calls) and offline Part B (fault injection). Results below.
+- T-010: replay mode (ADR-012), three simulated disputes behind the `--replay` flag. Offline tests, a local run with curl, and the author's browser check. Merged in PR #9. Results below.
 
 ## T-002 spike results
 All calls went to `api-m.sandbox.paypal.com`. Sandbox IDs: order `6HK11753C5145591C`, capture `54X87564PT289050U`, dispute `PP-R-HBV-10197617` (reason `MERCHANDISE_OR_SERVICE_NOT_RECEIVED`, 10.00 USD). Every dispute action also read the dispute before and after the call; all of those reads returned HTTP 200. Link names are shown as printed by the script, with underscores turned into hyphens.
@@ -198,7 +199,12 @@ Not verified:
 - Concurrent requests, and browsers other than Chrome.
 
 ## In progress
-T-010: replay mode. Implemented and checked offline and on a local server; the author's browser check is pending (see the T-010 section).
+T-008: README, license check and secrets scan, on branch `docs/t-008-readme`.
+- Commit 1: `README.md`. The sections are: what it is, with a headline result labelled simulated; replay mode; evaluation results (simulated); how it works; running against the sandbox; sandbox notes and limitations; Disputes API feedback; structure; license. Every evaluation number is copied from `evaluation/results.md`. The Part B per-group rows were checked to sum to 1,065 (1,192 with the merchant-record, benign and local-date cases). Code checked: Approve calls the model again (`web/app.py:274`), so the README says each Draft and each Approve is one billed call. Each feedback point names the dispute and step from this file where it was seen. Screenshot spots are HTML comment placeholders, and the video link is a TODO. No code or tests were changed.
+- Fresh-clone check (author, 2026-11-11), replay only: the author cloned `docs/t-008-readme` into a temp directory, created a venv on Python 3.14.7, ran `pip install -r requirements.txt` (no errors) and `python -m dispute_defender.web --replay`, and the disputes list loaded. The README's dispute walkthrough was not part of this check.
+- Not checked in a fresh clone: the sandbox-credentials path (`.env` from `.env.example`, dry run, live send).
+- Secrets scan done (see Verification, T-008): no secrets found.
+- Next: the author sets the license in GitHub About; screenshots and the video link in the README; then the PR. The sandbox-credentials path in a fresh clone is still unchecked.
 
 ## T-010 replay mode results
 Decisions: ADR-012. Data, sources and what to type: `dispute_defender/replay/README.md`.
@@ -219,7 +225,7 @@ Checks:
 - 44 new offline tests in `tests/test_replay_data.py`, `tests/test_replay_clients.py`, `tests/test_replay_web.py` and `tests/test_replay_main.py`: provenance against `evaluation/scenarios/` and `evaluation/results/raw-2026-11-11.jsonl`; no real IDs, UUIDs, request IDs, emails or names beyond the `FAKE-...` placeholders; sockets blocked for the whole web flow; the REPLAY banner on every page including the 400, 403, 422 and PayPal error pages; BLOCKED and FLAGGED values never in the recorded payload; the recorded payload equals what `prepare_send` builds independently; a wrong tracking number or a hash mismatch records nothing; no environment variable or `.env` line enables replay; the flag never reads `.env` or builds a real client; mixed clients are refused; dry and live preview pages carry no replay text.
 - No existing test was edited.
 - Local run (2026-11-11): `python -m dispute_defender.web --replay --port 8765` under uvicorn, driven with curl and the browser's `Origin` header: dispute 1 draft 6 VERIFIED, approve showed the replay result and `UNDER_REVIEW`; dispute 3 draft 4 VERIFIED, 1 BLOCKED, 1 FLAGGED; dispute 2 refused.
-- Not done: the author's check in a browser.
+- The author's check in a browser: done (reported by the author, 2026-11-11). Merged in PR #9.
 
 Limits: no PayPal response in replay is a recording; model outputs are rebuilt from recorded claim values, not raw tool input, and dispute 3's is altered on purpose; no model variation, latency, tokens or API errors; the read-back is hand-written from the T-006 observation; dispute 2's refusal uses the real gate's wording ("PayPal does not offer provide-evidence ..."), where "PayPal" means the replay data; state is in memory and resets on restart.
 
@@ -269,6 +275,32 @@ Checks on the committed results (2026-11-11): the raw JSONL, `results.md` and `f
 Limits (full list in `results.md`): simulated scenarios written with knowledge of the verifier's rules; one dispute reason; 24 distinct cases per model; zero observed errors does not mean a zero error rate; two models, one run window; the verifier cannot catch a wrong merchant record; nothing here says whether a response would win a dispute.
 
 ## Verification
+- T-008 secrets scan (2026-11-11). Method: gitleaks and trufflehog are not installed, so a local Python regex script outside the repo (nothing installed) printed pattern names, counts and paths only; no matched value was printed or written. Scope:
+  - The working tree: tracked files plus untracked files that are not gitignored, skipping `.venv`, `.pytest_cache` and `__pycache__`; the ignored local `.env` was read only to take the PayPal client ID and secret as literals to search for.
+  - The full history: all 54 commits on all 14 refs, including every blob reachable from them (so deleted files too) and every commit message.
+  - Commit metadata: author and committer emails.
+
+  Results:
+  | Pattern | Working tree | History | Classification |
+  |---|---|---|---|
+  | PayPal client ID / secret, literal values from `.env` | 0 | 0 | none |
+  | `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` assigned a 20+ character value | 1 match, `.env.example` | 4 matches, `.env.example` | False positive: the regex matched across a line break. Both values are empty in all 7 versions of `.env.example` in history; a same-line rerun gave 0 |
+  | AWS access key ID (`AKIA` / `ASIA`) | 0 | 0 | none |
+  | `aws_secret_access_key` assigned a 40-character key-like value | 0 | 0 | none |
+  | Any `aws_secret` text | 3 files | 3 files (same) | Benign. `tests/conftest.py`: the env var name, in the list of AWS variables the tests clear. `tests/test_bedrock_client.py`: the fake `"testing"` key for botocore's Stubber. `tests/test_replay_data.py`: the name inside a regex that asserts the replay data contains no secrets |
+  | Private key block | 0 | 0 | none |
+  | Bearer token (20+ characters) | 0 | 0 | none |
+  | Basic token (16+ characters) | 0 | 0 | none |
+  | Email, placeholder domain (`example.*`, `.invalid`, `.test`) | 34 matches in 31 files | 37 matches in 31 files | Benign: fake buyer and seller addresses in `evaluation/scenarios/*.json` (24), `dispute_defender/replay/data/replay.json`, `tests/fixtures/paypal/*.json` (3), `tests/conftest.py`, `tests/test_eval_scenarios.py`, `tests/test_models.py`, `tests/test_replay_data.py` |
+  | Email, other | 1, `tests/test_config.py` | 1, same | Benign: not an address. A URL with placeholder userinfo (`user:` plus a 2-letter placeholder password) in a host-guard test that must be refused |
+  | Email, co-author attribution | 0 | 84, commit messages only | Benign: the Claude co-author trailer |
+  | Email equal to the author's git `user.email` | 0 | 0 | none in file content or messages |
+  | Author's local home path (`/Users/<name>` or `/home/<name>`) | 0 | 0 | none |
+  | Author's local username | 0 | 0 | none |
+  | `.env` files ever added, on any ref | `.env.example` only | `.env.example` only | No `.env` was ever committed; `.env` is ignored and untracked |
+  | Commit metadata emails | n/a | 2 distinct | Both are noreply addresses: the author's GitHub noreply form and GitHub's merge committer address |
+
+  Not in scope: the GitHub handle in the clone URL in `README.md`. It is intentional (author decision) and was not counted as a finding.
 - T-010 (2026-11-11): `.venv/bin/python -m pytest`: 714 passed, offline, one warning (the Starlette `httpx` notice); 44 of them added in T-010. Secret scan on the working tree and git history (AWS access key IDs, AWS secret key names, AWS ARNs, 12-digit account-like numbers, and the PayPal client ID and secret from `.env` matched without printing them): no secrets; the only secret-key-name matches are the same two as in T-005. `.env` is ignored and untracked. Local replay server run with curl: see the T-010 section.
 - T-007 close (2026-11-11): `.venv/bin/python -m pytest`: 670 passed, offline, one warning (the Starlette `httpx` notice). Secret scan on the working tree (including the untracked raw results) and git history (AWS access key IDs, AWS secret key names, AWS ARNs, 12-digit account-like numbers, and the PayPal client ID and secret matched without printing them): no secrets; the only secret-key-name matches are the same two as in T-005 (`tests/conftest.py`, `tests/test_bedrock_client.py`). `.env` is ignored and untracked.
 - T-007: live Part A run by the author on 2026-11-11 with `scripts/run_evaluation.py run --confirm-spend` (144 calls, 0 errors), then `report`; see the T-007 section.
@@ -298,10 +330,9 @@ Limits (full list in `results.md`): simulated scenarios written with knowledge o
 - None.
 
 ## Next steps
-0. T-010: the author checks replay mode in a browser (`.venv/bin/python -m dispute_defender.web --replay`, the three disputes in `dispute_defender/replay/README.md`), then opens the PR and marks T-010 Done. The README (T-008) can reuse the replay text in the T-010 PR description.
-1. T-008: README. Start with what it does and the measured result from `evaluation/results.md`, labelled as simulated, with the honest reading of M2 (6 per model, all from scenario R2's unsupported claims, which the verifier FLAGGED; not model value errors) and the blind spot (a wrong merchant record is not caught). Then setup and run steps, the PayPal sandbox and model used, and known limitations. Also a fresh-clone check, the secrets scan on the repo and history, and the license in the About section.
+1. T-008: README written (commit 1). Remaining: the secrets scan on the working tree and full history (commit 2), a fresh-clone check, screenshots and the video link in the README, the license in About (author), then the PR.
 2. T-009: demo video (under 3 minutes) and submission.
 3. Optional, only if time remains: the live prompt-injection run (T-005), T-011 (401 retry), T-012 (cosmetic fixes).
 
 ## Resume instruction
-Read AGENTS.md and TASKS.md, confirm the current state, then finish T-010 (browser check, PR) and continue with T-008.
+Read AGENTS.md and TASKS.md, confirm the current state, then continue T-008 on `docs/t-008-readme` (secrets scan after the author confirms).
