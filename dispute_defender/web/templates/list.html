@@ -4,10 +4,10 @@
 <h1>Disputes</h1>
 <p class="muted">Read from PayPal at {{ read_at }}.</p>
 {% if disputes %}
-<table>
+<table class="disputes">
   <tr><th>Dispute</th><th>Status</th><th>Stage</th><th>Reason</th><th>Amount</th></tr>
   {% for d in disputes %}
-  <tr><td><a href="/disputes/{{ d.dispute_id }}">{{ d.dispute_id }}</a></td><td>{{ d.status }}</td><td>{{ d.stage }}</td><td>{{ d.reason }}</td><td>{{ d.amount }}</td></tr>
+  <tr><td><a href="/disputes/{{ d.dispute_id }}">{{ d.dispute_id }}</a></td><td><span class="status-tag">{{ d.status }}</span></td><td>{{ d.stage }}</td><td>{{ d.reason }}</td><td>{{ d.amount }}</td></tr>
   {% endfor %}
 </table>
 {% else %}
