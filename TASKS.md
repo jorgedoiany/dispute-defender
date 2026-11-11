@@ -6,7 +6,7 @@ A merchant opens a PayPal sandbox dispute, reviews a drafted response whose ever
 Target dates: core build Nov 9-10; README, license, video and submission Nov 11 (deadline Nov 12, 12:00 PT).
 
 ## Current task
-None started. Next: T-005.
+None started. Next: T-006.
 
 ## Backlog
 
@@ -61,13 +61,20 @@ None started. Next: T-005.
 
 ### T-005: Model drafter on Bedrock
 - Priority: P0
-- Status: Todo
+- Status: Done
 - Depends on: T-004
 - Acceptance criteria:
-  - [ ] Given a dispute and its transaction data, Claude on Bedrock returns structured claims as JSON that the schema accepts
-  - [ ] Invalid model output is rejected, not sent on
-  - [ ] Model ID and AWS setup are recorded in AGENTS.md
-- Prerequisites (decided 2026-11-10, ADR-003): region `us-east-1`; primary model `us.anthropic.claude-sonnet-4-6`, secondary `us.anthropic.claude-haiku-4-5-20251001-v1:0`; auth through the AWS CLI default profile and the boto3 credential chain. Both models answered a minimal Converse call run by the author. The values are recorded in AGENTS.md and `.env.example`; the third criterion stays open until the drafter reads them and calls Bedrock.
+  - [x] Given a dispute and its transaction data, Claude on Bedrock returns structured claims as JSON that the schema accepts
+    - Live, 2026-11-10, run by the author with `scripts/smoke_drafter.py`: the primary model on `PP-R-KXL-10197854` and `PP-R-HBV-10197617`, and the secondary model on `PP-R-KXL-10197854`. Each returned 6 claims through the forced tool, the schema accepted them, and the verifier marked all 6 VERIFIED. Offline: `tests/test_drafter.py`, `tests/test_drafter_schema.py`, `tests/test_bedrock_client.py`.
+  - [x] Invalid model output is rejected, not sent on
+    - Evidenced offline only; it cannot be forced live. `tests/test_drafter.py` and `tests/test_drafter_schema.py` cover a missing tool call, text only, `max_tokens`, a wrong or second tool call, non-object input, unknown claim types, extra fields, wrong JSON types and wrong sources. Each raises `DraftRejected` and nothing from that output is returned. Nothing is sent to PayPal in T-005 at all; sending is T-006.
+  - [x] Model ID and AWS setup are recorded in AGENTS.md
+    - Model IDs, region and auth are in AGENTS.md (ADR-003). The drafter reads them from `AWS_REGION`, `BEDROCK_MODEL_ID` and `BEDROCK_MODEL_ID_SECONDARY`, and the live runs used them.
+- Limits of the evidence:
+  - The three live runs were happy-path runs with a fixed test merchant record. They show the pipeline works end to end; they say nothing about model accuracy, which is T-007.
+  - The optional live prompt-injection run (a buyer message with an injection posted in the sandbox) was **not** done. Offline tests show that manipulated claims are blocked or flagged by the verifier. Do it only if time remains.
+  - FLAGGED did not come up live; it is covered offline.
+- Prerequisites (decided 2026-11-10, ADR-003): region `us-east-1`; primary model `us.anthropic.claude-sonnet-4-6`, secondary `us.anthropic.claude-haiku-4-5-20251001-v1:0`; auth through the AWS CLI default profile and the boto3 credential chain. Design in ADR-009.
 
 ### T-006: Approval page and send
 - Priority: P0
@@ -125,3 +132,4 @@ None started. Next: T-005.
 - T-002: Sandbox spike. Go recorded in ADR-007. The "adjudicates" criterion was not met (see T-002 note).
 - T-003: PayPal REST client in `dispute_defender/paypal/`, with offline tests and a live sandbox smoke check.
 - T-004: Claim schema and deterministic verifier in `dispute_defender/claims/` (ADR-008), with offline tests and a live read-only check on two sandbox disputes. FLAGGED was exercised offline only.
+- T-005: Bedrock drafter in `dispute_defender/drafter/` (ADR-009), with offline tests and three live happy-path runs (two primary, one secondary). Invalid-output rejection is evidenced offline only; the live injection run was not done.
