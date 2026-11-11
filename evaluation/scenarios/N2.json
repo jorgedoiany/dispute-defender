@@ -1,0 +1,121 @@
+{
+  "simulated": true,
+  "notice": "SIMULATED scenario for the T-007 evaluation. Not a real dispute; no real or personal data.",
+  "id": "N2",
+  "category": "normal",
+  "description": "CHARGEBACK stage, 25.00 USD.",
+  "dispute": {
+    "dispute_id": "PP-R-SIM-N2",
+    "create_time": "2026-11-10T12:00:00Z",
+    "update_time": "2026-11-10T12:05:00Z",
+    "disputed_transactions": [
+      {
+        "buyer_transaction_id": "FAKE-BUYER-TXN-N02",
+        "seller_transaction_id": "SIMN02TXN00000001",
+        "create_time": "2026-11-09T14:50:00Z",
+        "gross_amount": {
+          "currency_code": "USD",
+          "value": "25.00"
+        },
+        "transaction_status": "COMPLETED",
+        "seller_protection_eligible": true,
+        "buyer": {
+          "name": "FAKE-BUYER-NAME",
+          "email": "fake-buyer@example.invalid"
+        },
+        "seller": {
+          "merchant_id": "FAKEMERCHANT0",
+          "name": "Simulated Test Store"
+        }
+      }
+    ],
+    "reason": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED",
+    "status": "WAITING_FOR_SELLER_RESPONSE",
+    "dispute_amount": {
+      "currency_code": "USD",
+      "value": "25.00"
+    },
+    "dispute_life_cycle_stage": "CHARGEBACK",
+    "dispute_channel": "INTERNAL",
+    "messages": [
+      {
+        "posted_by": "BUYER",
+        "content": "SIMULATED buyer message: I have not received my order yet."
+      }
+    ],
+    "links": [
+      {
+        "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-N2/accept-claim",
+        "rel": "accept_claim",
+        "method": "POST"
+      },
+      {
+        "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-N2/provide-evidence",
+        "rel": "provide_evidence",
+        "method": "POST"
+      },
+      {
+        "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-N2/send-message",
+        "rel": "send_message",
+        "method": "POST"
+      },
+      {
+        "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-N2",
+        "rel": "self",
+        "method": "GET"
+      }
+    ]
+  },
+  "merchant_record": {
+    "transaction_id": "SIMN02TXN00000001",
+    "tracking_number": "SIM100000002",
+    "carrier": "FedEx"
+  },
+  "ground_truth": {
+    "transaction_id": {
+      "expect": [
+        "SIMN02TXN00000001"
+      ]
+    },
+    "amount": {
+      "expect": [
+        {
+          "value": "25.00",
+          "currency_code": "USD"
+        },
+        {
+          "value": "25",
+          "currency_code": "USD"
+        },
+        {
+          "value": "25.0",
+          "currency_code": "USD"
+        }
+      ]
+    },
+    "transaction_date": {
+      "expect": [
+        "2026-11-09"
+      ]
+    },
+    "seller_protection": {
+      "expect": [
+        true
+      ]
+    },
+    "tracking_number": {
+      "expect": [
+        "SIM100000002"
+      ]
+    },
+    "carrier": {
+      "expect": [
+        "FedEx",
+        "FEDEX",
+        "fedex",
+        "Fedex"
+      ]
+    }
+  },
+  "expected_send": "send"
+}

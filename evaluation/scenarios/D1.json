@@ -1,0 +1,122 @@
+{
+  "simulated": true,
+  "notice": "SIMULATED scenario for the T-007 evaluation. Not a real dispute; no real or personal data.",
+  "id": "D1",
+  "category": "date_timezone",
+  "description": "Paid at 23:30 local time (UTC-5) on Nov 9, which is Nov 10 in UTC; the buyer message gives the local date.",
+  "dispute": {
+    "dispute_id": "PP-R-SIM-D1",
+    "create_time": "2026-11-10T12:00:00Z",
+    "update_time": "2026-11-10T12:05:00Z",
+    "disputed_transactions": [
+      {
+        "buyer_transaction_id": "FAKE-BUYER-TXN-D01",
+        "seller_transaction_id": "SIMD01TXN00000001",
+        "create_time": "2026-11-09T23:30:00-05:00",
+        "gross_amount": {
+          "currency_code": "USD",
+          "value": "10.00"
+        },
+        "transaction_status": "COMPLETED",
+        "seller_protection_eligible": true,
+        "buyer": {
+          "name": "FAKE-BUYER-NAME",
+          "email": "fake-buyer@example.invalid"
+        },
+        "seller": {
+          "merchant_id": "FAKEMERCHANT0",
+          "name": "Simulated Test Store"
+        }
+      }
+    ],
+    "reason": "MERCHANDISE_OR_SERVICE_NOT_RECEIVED",
+    "status": "WAITING_FOR_SELLER_RESPONSE",
+    "dispute_amount": {
+      "currency_code": "USD",
+      "value": "10.00"
+    },
+    "dispute_life_cycle_stage": "INQUIRY",
+    "dispute_channel": "INTERNAL",
+    "messages": [
+      {
+        "posted_by": "BUYER",
+        "content": "SIMULATED buyer message: I paid on November 9, 2026 (2026-11-09) and nothing arrived."
+      }
+    ],
+    "links": [
+      {
+        "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-D1/accept-claim",
+        "rel": "accept_claim",
+        "method": "POST"
+      },
+      {
+        "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-D1/provide-evidence",
+        "rel": "provide_evidence",
+        "method": "POST"
+      },
+      {
+        "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-D1/send-message",
+        "rel": "send_message",
+        "method": "POST"
+      },
+      {
+        "href": "https://api-m.sandbox.paypal.com/v1/customer/disputes/PP-R-SIM-D1",
+        "rel": "self",
+        "method": "GET"
+      }
+    ]
+  },
+  "merchant_record": {
+    "transaction_id": "SIMD01TXN00000001",
+    "tracking_number": "SIM100000012",
+    "carrier": "FedEx"
+  },
+  "ground_truth": {
+    "transaction_id": {
+      "expect": [
+        "SIMD01TXN00000001"
+      ]
+    },
+    "amount": {
+      "expect": [
+        {
+          "value": "10.00",
+          "currency_code": "USD"
+        },
+        {
+          "value": "10",
+          "currency_code": "USD"
+        },
+        {
+          "value": "10.0",
+          "currency_code": "USD"
+        }
+      ]
+    },
+    "transaction_date": {
+      "expect": [
+        "2026-11-10"
+      ]
+    },
+    "seller_protection": {
+      "expect": [
+        true
+      ]
+    },
+    "tracking_number": {
+      "expect": [
+        "SIM100000012"
+      ]
+    },
+    "carrier": {
+      "expect": [
+        "FedEx",
+        "FEDEX",
+        "fedex",
+        "Fedex"
+      ]
+    }
+  },
+  "expected_send": "send",
+  "local_date": "2026-11-09"
+}
