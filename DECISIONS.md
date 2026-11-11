@@ -11,6 +11,7 @@
 - ADR-008: Claim schema and deterministic verdict rules (Accepted)
 - ADR-009: Bedrock drafter returns claims only, through a forced tool (Accepted)
 - ADR-010: Send path: VERIFIED-only rendering, re-verify on approve, local dry-by-default app (Accepted)
+- ADR-011: Evaluation scoring definitions for T-007 (Accepted)
 
 ## Entry template
 ### ADR-[number]: [title]
@@ -233,3 +234,27 @@ T-006 adds the approval page and the only path that writes to PayPal on the merc
 - **Referrer-Policy.** The app sends `Referrer-Policy: same-origin`, not `no-referrer`. With `no-referrer`, browsers serialize the `Origin` of the page's own form POSTs as `null` (Fetch spec), and the Origin check refused the merchant's Draft click with 403. A real Chrome run found this; the TestClient tests had not. `same-origin` makes the app's own posts carry the real origin and still sends nothing to other sites. The signed single-use token, the Host allowlist and the refusal of foreign and `null` origins are unchanged.
 - **Unknown send outcome.** If the provide-evidence POST times out, the connection drops, PayPal answers 5xx or an unreadable 2xx, or an unexpected error occurs, the page says the outcome is unknown and to check the dispute's state before retrying. It never says nothing was sent. A 4xx keeps the "rejected" wording. No retry is offered, and the approve token is single use.
 - **`allowed_response_options`.** In the T-006 live run it held only `accept_claim` while the `provide_evidence` link was offered and provide-evidence was accepted. This confirms the decision to gate on the link only.
+
+### ADR-011: Evaluation scoring definitions for T-007
+- Date: 2026-11-10
+- Status: Accepted
+- Supersedes: none
+
+#### Context
+T-007 measures how many wrong claims reach the send step with and without the verifier. The README will quote these numbers, so what counts as an error has to be fixed before any live run and must not be tuned after seeing results. Sandbox disputes need manual buyer steps (ADR-007), so all evaluation data is simulated.
+#### Decision
+- **Data.** 24 simulated scenarios in `evaluation/scenarios/`, each with `"simulated": true` and a hand-written ground truth for all six claim types: `expect` (a list of accepted values, compared as exact JSON, no normalisation code), `absent` (the fact is missing; the claim must not be made) or `unsupported` (the model may make the claim, but it must not be VERIFIED or sent; used when the merchant record is for another transaction, which the prompt does not show the model). The verifier never computes the ground truth.
+- **Per call.** `accepted` (a draft came back), `rejected` (`DraftRejected`) or `error` (any other drafter error). Errors are left out of every rate and counted.
+- **Per claim of an accepted draft.** `correct` (value in the accepted list), `wrong_value`, `absent_fact` (claim of an `absent` type) or `unsupported`; plus `duplicate` for the second and later claims of one type. Model errors are `wrong_value`, `absent_fact` and duplicates. Incorrect claims are `wrong_value`, `absent_fact` and `unsupported`. Missing expected claims are reported as coverage, not as errors. Wrong source and unknown type can only appear as `rejected`, because the drafter schema fixes them (ADR-009).
+- **Verifier outcome** is the `Verdict` from `verify_claims`; the **send outcome** is the `SendPlan` or `Refusal` from `prepare_send`, with the shown hash taken from `render_notes`. A claim reaches the send step when it is VERIFIED and `prepare_send` returns a plan.
+- **Metrics.** M1 model claim error rate (per model, per category, as k/n). M2 counterfactual: incorrect claims in accepted drafts, counted as if every claim were sent unchecked; computed from the same outputs, not a separate experiment, and it keeps schema validation, so it is conservative and understates the verifier's value. M3 incorrect claims VERIFIED, and VERIFIED and in a send plan; reported as observed, never assumed to be 0. M4 correct claims FLAGGED or BLOCKED. M5 drafts rejected before the verifier. M6 variation across repetitions. M7 ground-truth class by verdict, with every disagreement listed.
+- **Part B.** Offline fault injection into the scenarios' correct claims, at the claim layer (`verify_claims`, `prepare_send`) and the tool-input layer (`draft_claims` with a scripted client). Faults the verifier cannot catch by design (an altered merchant record) are reported as expected misses; a correct local date near midnight is reported as a known false rejection (ADR-008).
+- **Freeze.** Hashes of the scenarios, the scoring module, the prompt and schema modules and the pipeline modules are recorded in `evaluation/frozen.json` before the live run; a live run refuses to start if the current hashes differ from the last freeze. Any change after seeing results is declared in `evaluation/DECLARED_CHANGES.md` and shown in the report.
+#### Alternatives
+- Score claims by the verifier's verdict: circular; the verifier is what is being measured.
+- Normalise values in the scoring code: would duplicate the verifier's rules; equivalent forms are listed in the data instead.
+- A separate no-verifier experiment: the same outputs give the counterfactual without extra calls.
+#### Consequences
+- The numbers describe simulated scenarios written with knowledge of the rules, not real-world accuracy.
+- A model value in an unlisted but equivalent form counts as a model error and shows in the disagreements table if VERIFIED.
+- Part B's catch rate reflects faults designed against known rules, so a high rate is expected by construction.

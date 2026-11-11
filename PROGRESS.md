@@ -1,7 +1,7 @@
 # PROGRESS.md
 
 Last updated: 2026-11-10 (America/Santo_Domingo)
-Current task: none (T-006 done; next: T-007)
+Current task: T-007 (small evaluation)
 
 ## Completed
 - T-001: public repository with an MIT license. `LICENSE` and the repo guides are on `main` and `.env` is untracked (checked locally). Public visibility and the About license were confirmed by the author; `gh` was not available to check them.
@@ -197,7 +197,7 @@ Not verified:
 - Concurrent requests, and browsers other than Chrome.
 
 ## In progress
-Nothing.
+- T-007: small evaluation on `feat/t-007-evaluation`. Scoring definitions in ADR-011.
 
 ## Verification
 - T-006: `.venv/bin/python -m pytest`: 446 passed, offline (2026-11-10); 184 of them added in T-006. One warning: Starlette's deprecation notice for `httpx` with its TestClient. PayPal is mocked with `responses` and the model is a fake client.

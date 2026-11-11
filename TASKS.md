@@ -6,7 +6,7 @@ A merchant opens a PayPal sandbox dispute, reviews a drafted response whose ever
 Target dates: core build Nov 9-10; README, license, video and submission Nov 11 (deadline Nov 12, 12:00 PT).
 
 ## Current task
-None started. Next: T-007.
+T-007: Small evaluation (in progress on `feat/t-007-evaluation`).
 
 ## Backlog
 
@@ -96,13 +96,14 @@ None started. Next: T-007.
 
 ### T-007: Small evaluation
 - Priority: P1
-- Status: Todo
+- Status: In progress
 - Depends on: T-006
 - Acceptance criteria:
   - [ ] About 20-30 disputes with seeded errors (wrong amount, date or tracking); simulated cases are labelled as simulated
   - [ ] Metric: wrong claims that reach the send step, model-only draft vs. draft with verifier
   - [ ] Result and its limits are written down
 - Note: evaluation data is simulated and labelled as such, because each sandbox dispute needs manual buyer steps in the browser (T-002, ADR-007).
+- Design (approved 2026-11-10): Part A, the real models draft claims for 24 simulated scenarios with known ground truth (3 repetitions, 2 models, 144 billed calls, only with `--confirm-spend`); Part B, offline fault injection into claims to measure what the verifier catches. Scoring definitions in ADR-011.
 
 ### T-008: README, license check and secrets scan
 - Priority: P0
