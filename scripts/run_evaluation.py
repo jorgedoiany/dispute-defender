@@ -6,6 +6,8 @@ Subcommands:
   freeze   Record the hashes of scenarios, scoring, prompt and pipeline in evaluation/frozen.json.
   run      Part A: the real model drafts claims for each scenario. Billed Bedrock calls,
            only with --confirm-spend; --dry-run prints the plan and estimate and calls nothing.
+  report   Write evaluation/results.md from the raw results, faults.json, the freeze and
+           DECLARED_CHANGES.md. No network.
 
 `run` reads `.env` without overriding variables already set in the shell (AWS_REGION,
 BEDROCK_MODEL_ID, BEDROCK_MODEL_ID_SECONDARY) and, for a live run only, AWS credentials
@@ -35,7 +37,14 @@ from dispute_defender.drafter import (  # noqa: E402
     load_model_config,
 )
 from dispute_defender.evaluation.faults import run_faults  # noqa: E402
-from dispute_defender.evaluation.freeze import FROZEN_PATH, current_hashes, freeze, freeze_status  # noqa: E402
+from dispute_defender.evaluation.freeze import (  # noqa: E402
+    FROZEN_PATH,
+    current_hashes,
+    freeze,
+    freeze_status,
+    load_freezes,
+)
+from dispute_defender.evaluation.report import build_report  # noqa: E402
 from dispute_defender.evaluation.runner import (  # noqa: E402
     DEFAULT_MAX_CALLS,
     MAX_CALLS_CEILING,
@@ -44,6 +53,7 @@ from dispute_defender.evaluation.runner import (  # noqa: E402
     build_plan,
     cap_problem,
     format_plan,
+    read_rows,
     run_plan,
 )
 from dispute_defender.evaluation.scenarios import EVAL_DIR, ScenarioError, load_scenarios  # noqa: E402
@@ -51,6 +61,8 @@ from dispute_defender.evaluation.scenarios import EVAL_DIR, ScenarioError, load_
 ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 RESULTS_DIR = EVAL_DIR / "results"
 FAULTS_PATH = RESULTS_DIR / "faults.json"
+REPORT_PATH = EVAL_DIR / "results.md"
+DECLARED_PATH = EVAL_DIR / "DECLARED_CHANGES.md"
 
 ClientFactory = Callable[[ModelConfig], ModelClient]
 
@@ -86,6 +98,11 @@ def parser() -> argparse.ArgumentParser:
 
     sub.add_parser("freeze", help="record the hashes of scenarios, scoring, prompt and pipeline")
 
+    rep = sub.add_parser("report", help="write evaluation/results.md from the recorded results")
+    rep.add_argument("--raw", type=Path, nargs="*", help="raw JSONL files (default: evaluation/results/raw-*.jsonl)")
+    rep.add_argument("--faults", type=Path, default=FAULTS_PATH)
+    rep.add_argument("--out", type=Path, default=REPORT_PATH)
+
     r = sub.add_parser("run", help="Part A: billed Bedrock calls, only with --confirm-spend")
     r.add_argument("--model", choices=("primary", "secondary", "both"), default="both")
     r.add_argument("--repetitions", type=int, choices=range(1, 6), default=3, metavar="1-5")
@@ -107,7 +124,7 @@ def cmd_faults(args: argparse.Namespace) -> int:
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(data, indent=1, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
     print(f"Part B (SIMULATED, offline): {len(data['rows'])} fault cases on {data['scenario_count']} scenarios "
-          f"-> {args.out}")
+          f"-> {args.out.name}")
     print(f"baseline: {data['baseline']['wrongly_rejected']} of {data['baseline']['correct_claims']} "
           "correct claims wrongly rejected")
     keys = ("applied", "caught", "missed", "expected_miss", "verified", "wrongly_rejected",
@@ -123,6 +140,18 @@ def cmd_freeze(_args: argparse.Namespace) -> int:
     print(f"frozen at {entry['frozen_at']} -> {FROZEN_PATH}")
     for name, digest in entry["hashes"].items():
         print(f"  {name:<9} {digest}")
+    return 0
+
+
+def cmd_report(args: argparse.Namespace) -> int:
+    raw_files = args.raw if args.raw is not None else sorted(RESULTS_DIR.glob("raw-*.jsonl"))
+    rows = [row for path in raw_files for row in read_rows(path)]
+    faults = json.loads(args.faults.read_text(encoding="utf-8")) if args.faults.exists() else None
+    declared = DECLARED_PATH.read_text(encoding="utf-8") if DECLARED_PATH.exists() else None
+    text = build_report(rows, faults, load_freezes(), declared, current_hashes(), _now())
+    args.out.write_text(text, encoding="utf-8")
+    print(f"report: {len(rows)} raw result line(s) from {len(raw_files)} file(s), "
+          f"Part B {'included' if faults else 'missing'} -> {args.out.name}")
     return 0
 
 
@@ -187,6 +216,8 @@ def main(argv: Sequence[str] | None = None, *, client_factory: ClientFactory = b
             return cmd_faults(args)
         if args.command == "freeze":
             return cmd_freeze(args)
+        if args.command == "report":
+            return cmd_report(args)
         return cmd_run(args, client_factory)
     except (DrafterError, ScenarioError) as exc:
         print(f"[evaluation] FAILED | {type(exc).__name__}: {exc}", file=sys.stderr)
