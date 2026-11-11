@@ -135,10 +135,21 @@ def test_duplicate_type_with_one_blocked_is_not_a_duplicate() -> None:
     assert render_notes(results) == S_AMOUNT
 
 
-def test_carrier_is_written_as_claimed_but_trimmed() -> None:
-    results = verified(claim("tracking_number"), claim("carrier", " fedex "))
+@pytest.mark.parametrize("written", [" fedex ", "FedEx", "FEDEX"])
+def test_carrier_is_written_as_its_canonical_value(written: str) -> None:
+    results = verified(claim("tracking_number"), claim("carrier", written))
     assert results[1].verdict is Verdict.VERIFIED
-    assert render_notes(results) == "According to our records, the order was shipped with fedex, tracking number 122533485."
+    assert render_notes(results) == S_SHIPPED
+
+
+def test_carrier_outside_the_list_gives_no_shipping_sentence() -> None:
+    record = MerchantOrderRecord(transaction_id=TXN_ID, tracking_number="122533485", carrier="UPS")
+    d = Dispute.model_validate(fixture("dispute_inquiry_waiting.json"))
+    results = verify_claims(d, [claim("transaction_id"), claim("tracking_number"), claim("carrier", "UPS")], record)
+    assert all(r.verdict is Verdict.VERIFIED for r in results)
+    notes = render_notes(results)
+    assert notes == S_TXN
+    assert "UPS" not in notes
 
 
 def test_amount_value_is_written_as_claimed() -> None:

@@ -87,12 +87,15 @@ def test_minimal_sendable_set_is_tracking_and_carrier() -> None:
     assert outcome.notes == "According to our records, the order was shipped with FEDEX, tracking number 122533485."
 
 
-def test_carrier_is_sent_as_the_paypal_enum_value() -> None:
-    results = verified(claim("tracking_number"), claim("carrier", " fedex "))
+@pytest.mark.parametrize("written", [" fedex ", "FedEx"])
+def test_text_and_payload_use_the_same_canonical_carrier(written: str) -> None:
+    results = verified(claim("tracking_number"), claim("carrier", written))
     assert results[1].verdict is Verdict.VERIFIED
     outcome = prepare_send(sendable_dispute(), results, hash_of(results))
     assert isinstance(outcome, SendPlan)
     assert outcome.evidence.tracking_info[0].carrier_name == "FEDEX"
+    assert "shipped with FEDEX," in outcome.notes
+    assert written.strip() not in outcome.notes.replace("FEDEX", "")
 
 
 def test_notes_hash_is_sha256_hex() -> None:
@@ -144,12 +147,28 @@ def test_allowed_response_options_is_never_a_condition() -> None:
 def test_refused_when_nothing_is_verified() -> None:
     results = verified(claim("amount", {"value": "12.00", "currency_code": "USD"}), claim("tracking_number", "000"))
     assert {r.verdict for r in results} == {Verdict.BLOCKED}
+    assert render_notes(results) is None
+    refused(prepare_send(sendable_dispute(), results, "0" * 64), "tracking number and the carrier VERIFIED")
+
+
+def test_refused_when_render_notes_returns_none_on_duplicate_type() -> None:
+    results = all_good() + verified(claim("transaction_id"))
+    assert render_notes(results) is None
+    refused(prepare_send(sendable_dispute(), results, hash_of(all_good())), "nothing to send")
+
+
+def test_refused_when_render_notes_returns_none_on_bad_shape() -> None:
+    results = verified(claim("tracking_number"), claim("carrier")) + [
+        ClaimResult(claim=Claim(type="amount", value="10.00 USD", source="paypal"),
+                    verdict=Verdict.VERIFIED, checked_against="paypal", reason="test"),
+    ]
+    assert render_notes(results) is None
     refused(prepare_send(sendable_dispute(), results, "0" * 64), "nothing to send")
 
 
-def test_refused_on_duplicate_verified_type() -> None:
-    results = all_good() + verified(claim("transaction_id"))
-    refused(prepare_send(sendable_dispute(), results, hash_of(all_good())), "nothing to send")
+def test_duplicate_verified_tracking_is_refused() -> None:
+    results = all_good() + verified(claim("tracking_number"))
+    refused(prepare_send(sendable_dispute(), results, hash_of(all_good())), "tracking number and the carrier")
 
 
 @pytest.mark.parametrize(
@@ -205,7 +224,8 @@ def test_verified_carrier_outside_the_list_is_refused() -> None:
     record = MerchantOrderRecord(transaction_id=TXN_ID, tracking_number="122533485", carrier="UPS")
     results = verified(claim("tracking_number"), claim("carrier", "UPS"), record=record)
     assert all(r.verdict is Verdict.VERIFIED for r in results)
-    refused(prepare_send(sendable_dispute(), results, hash_of(results)), "carrier is not supported", "FEDEX")
+    assert render_notes(results) is None  # no shipping sentence for an unlisted carrier
+    refused(prepare_send(sendable_dispute(), results, "0" * 64), "carrier is not supported", "FEDEX")
 
 
 # Rule 5: notes length

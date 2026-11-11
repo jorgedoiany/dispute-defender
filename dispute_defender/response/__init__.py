@@ -1,7 +1,7 @@
 """Response rendering and send gate (T-006, ADR-010)."""
+from .carriers import ALLOWED_CARRIERS, canonical_carrier
 from .render import render_notes
 from .send import (
-    ALLOWED_CARRIERS,
     MAX_NOTES_CHARS,
     Refusal,
     SendPlan,
@@ -15,6 +15,7 @@ __all__ = [
     "MAX_NOTES_CHARS",
     "Refusal",
     "SendPlan",
+    "canonical_carrier",
     "check_dispute_sendable",
     "notes_hash",
     "prepare_send",

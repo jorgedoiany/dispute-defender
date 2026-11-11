@@ -1,17 +1,20 @@
 """Send gate: decide whether a response may be sent, and build its payload (T-006, ADR-010).
 
 A pure function of a freshly read dispute, the verifier's results and the hash of the
-text the merchant was shown. No model, network or clock. It refuses when:
+text the merchant was shown. No model, network or clock. Checks, in this order; the
+first one that fails gives the refusal:
   1. the dispute does not offer the `provide_evidence` link (the only gate signal;
      `allowed_response_options` is shown for information, never checked)
-  2. the renderer returns None (no VERIFIED claim, or a duplicate VERIFIED type)
-  3. the tracking number or carrier is not VERIFIED (PROOF_OF_FULFILLMENT needs both)
-  4. the carrier is not in ALLOWED_CARRIERS
+  2. the tracking number or carrier is not VERIFIED exactly once (PROOF_OF_FULFILLMENT
+     needs both)
+  3. the carrier is not in ALLOWED_CARRIERS
+  4. the renderer returns None (no VERIFIED claim, or a duplicate VERIFIED type)
   5. the notes are longer than MAX_NOTES_CHARS
   6. sha256(notes) differs from the hash of the text the merchant was shown
 
 The tracking info is built from VERIFIED claim values only, never from form input, so
-FLAGGED and BLOCKED values cannot reach the payload.
+FLAGGED and BLOCKED values cannot reach the payload. The carrier is the same canonical
+value the renderer writes in the text.
 """
 from __future__ import annotations
 
@@ -23,12 +26,8 @@ from dataclasses import dataclass
 from dispute_defender.claims import ClaimResult, Verdict
 from dispute_defender.paypal import Dispute, Evidence, TrackingInfo
 
+from .carriers import ALLOWED_CARRIERS, canonical_carrier
 from .render import render_notes
-
-# PayPal documents `carrier_name` as an enum. Only FEDEX has been sent and accepted in the
-# sandbox (T-002, T-003). Before adding another carrier, check its exact enum value in
-# PayPal's API reference and in the sandbox.
-ALLOWED_CARRIERS: tuple[str, ...] = ("FEDEX",)
 
 # Assumed limit for `notes`, not verified against PayPal. Refuse rather than cut the text.
 MAX_NOTES_CHARS = 2000
@@ -68,29 +67,22 @@ def _single_verified(results: Sequence[ClaimResult], type_: str) -> object | Non
     return values[0] if len(values) == 1 else None
 
 
-def _allowed_carrier(value: object) -> str | None:
-    if not isinstance(value, str):
-        return None
-    wanted = value.strip().casefold()
-    return next((c for c in ALLOWED_CARRIERS if c.casefold() == wanted), None)
-
-
 def prepare_send(dispute: Dispute, results: Sequence[ClaimResult], shown_hash: str) -> SendPlan | Refusal:
     refusal = check_dispute_sendable(dispute)
     if refusal is not None:
         return refusal
 
-    notes = render_notes(results)
-    if notes is None:
-        return Refusal("nothing to send: no VERIFIED claim, or two VERIFIED claims of the same type")
-
     tracking = _single_verified(results, "tracking_number")
     carrier = _single_verified(results, "carrier")
     if not isinstance(tracking, str) or carrier is None:
         return Refusal("proof of fulfillment needs both the tracking number and the carrier VERIFIED")
-    carrier_name = _allowed_carrier(carrier)
+    carrier_name = canonical_carrier(carrier)
     if carrier_name is None:
         return Refusal(f"carrier is not supported; allowed: {', '.join(ALLOWED_CARRIERS)}")
+
+    notes = render_notes(results)
+    if notes is None:
+        return Refusal("nothing to send: no VERIFIED claim, or two VERIFIED claims of the same type")
 
     if len(notes) > MAX_NOTES_CHARS:
         return Refusal(f"response text is longer than {MAX_NOTES_CHARS} characters")

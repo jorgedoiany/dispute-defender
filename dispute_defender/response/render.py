@@ -11,12 +11,15 @@ One sentence per VERIFIED claim, in this fixed order, joined with a single space
   seller_protection  PayPal lists this transaction as eligible for Seller Protection.
                      (only if the VERIFIED value is true)
   tracking_number    According to our records, the order was shipped with {carrier},
-  + carrier          tracking number {tracking}. (only if both are VERIFIED)
+  + carrier          tracking number {tracking}. (only if both are VERIFIED and the
+                     carrier is in the fixed carrier list)
 
 Returns None (nothing to send) when no claim is VERIFIED, when two VERIFIED claims
 share a type, or when no sentence results. Values are written as the claim holds
-them; only the carrier is trimmed, because the verifier compares it trimmed. A
-VERIFIED value of an unexpected shape also gives None, so rendering fails closed.
+them, except the carrier, which is written as its canonical PayPal value (for example
+"fedex" -> "FEDEX") so the text always matches the payload's `carrier_name`. A carrier
+outside the list gives no shipping sentence (the send gate then refuses). A VERIFIED
+value of an unexpected shape gives None, so rendering fails closed.
 """
 from __future__ import annotations
 
@@ -24,6 +27,8 @@ from collections.abc import Sequence
 from typing import Any
 
 from dispute_defender.claims import ClaimResult, Verdict
+
+from .carriers import canonical_carrier
 
 
 class _Unrenderable(Exception):
@@ -56,11 +61,12 @@ def _sentences(values: dict[str, Any]) -> list[str]:
         if protected:
             out.append("PayPal lists this transaction as eligible for Seller Protection.")
     if "tracking_number" in values and "carrier" in values:
-        carrier = _text(values["carrier"]).strip()
         tracking = _text(values["tracking_number"])
-        out.append(
-            f"According to our records, the order was shipped with {carrier}, tracking number {tracking}."
-        )
+        carrier = canonical_carrier(_text(values["carrier"]))
+        if carrier is not None:
+            out.append(
+                f"According to our records, the order was shipped with {carrier}, tracking number {tracking}."
+            )
     return out
 
 
