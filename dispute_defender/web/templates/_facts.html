@@ -1,0 +1,18 @@
+<table>
+  <tr><th>Dispute</th><td>{{ dispute.dispute_id }}</td></tr>
+  <tr><th>Status</th><td>{{ dispute.status }}</td></tr>
+  <tr><th>Stage</th><td>{{ dispute.stage }}</td></tr>
+  <tr><th>Reason</th><td>{{ dispute.reason }}</td></tr>
+  <tr><th>Dispute amount</th><td>{{ dispute.amount }}</td></tr>
+  {% if dispute.transaction %}
+  <tr><th>Transaction</th><td>{{ dispute.transaction.id }}</td></tr>
+  <tr><th>Transaction date (UTC)</th><td>{{ dispute.transaction.date_utc }}</td></tr>
+  <tr><th>Transaction amount</th><td>{{ dispute.transaction.amount }}</td></tr>
+  <tr><th>Seller protection eligible</th><td>{{ dispute.transaction.seller_protection_eligible }}</td></tr>
+  {% else %}
+  <tr><th>Transactions</th><td>{{ dispute.transaction_count }} (expected exactly one)</td></tr>
+  {% endif %}
+  <tr><th>Actions PayPal offers (links)</th><td>{{ dispute.links | join(", ") or "-" }}</td></tr>
+  <tr><th>allowed_response_options (information only)</th><td>{{ dispute.response_options | join(", ") or "-" }}</td></tr>
+  <tr><th>Buyer messages</th><td>{{ dispute.message_count }} (text not shown)</td></tr>
+</table>

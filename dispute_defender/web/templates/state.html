@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}State of {{ dispute.dispute_id }}{% endblock %}
+{% block content %}
+<h1>State of {{ dispute.dispute_id }}</h1>
+<p><strong>Read back from PayPal at {{ read_at }}.</strong> Statuses change on their own; UNDER_REVIEW can be short-lived.</p>
+{% include "_facts.html" %}
+<p><a href="/disputes/{{ dispute.dispute_id }}/state">Refresh state</a> · <a href="/disputes/{{ dispute.dispute_id }}">Dispute page</a></p>
+{% endblock %}

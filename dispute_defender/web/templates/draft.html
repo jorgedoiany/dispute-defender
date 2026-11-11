@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Draft for {{ dispute.dispute_id }}{% endblock %}
+{% block content %}
+<h1>Draft for {{ dispute.dispute_id }}</h1>
+{% if notice %}<div class="notice">{{ notice }}</div>{% endif %}
+<p class="muted">Dispute read from PayPal at {{ read_at }}: {{ dispute.status }} / {{ dispute.stage }}.</p>
+
+<h2>Claims and verification</h2>
+<p class="muted">Only VERIFIED claims are used in the response. FLAGGED and BLOCKED claims are never sent.</p>
+<table>
+  <tr><th>Type</th><th>Source</th><th>Value</th><th>Verdict</th><th>Reason</th></tr>
+  {% for c in claims %}
+  <tr><td>{{ c.type }}</td><td>{{ c.source }}</td><td>{{ c.value }}</td><td class="{{ c.verdict }}">{{ c.verdict }}</td><td>{{ c.reason }}</td></tr>
+  {% else %}
+  <tr><td colspan="5">No claims.</td></tr>
+  {% endfor %}
+</table>
+
+<h2>Response text</h2>
+{% if notes %}
+<div class="box">{{ notes }}</div>
+{% else %}
+<p>No response text: no claim was VERIFIED.</p>
+{% endif %}
+
+{% if approve %}
+<h2>Evidence that {% if live %}will be sent{% else %}would be sent (dry run){% endif %}</h2>
+<div class="box">{{ approve.payload }}</div>
+<form method="post" action="/disputes/{{ dispute.dispute_id }}/approve">
+  <input type="hidden" name="csrf" value="{{ approve.csrf }}">
+  <input type="hidden" name="tracking" value="{{ tracking }}">
+  <input type="hidden" name="carrier" value="{{ carrier }}">
+  <input type="hidden" name="shown_hash" value="{{ approve.shown_hash }}">
+  <p class="muted">Approving reads the dispute again and drafts and verifies again (one more model call). It sends only if the text is the same as above.</p>
+  <button type="submit">{% if live %}Approve and send (live sandbox){% else %}Approve (dry run){% endif %}</button>
+</form>
+{% else %}
+<div class="refusal">Cannot send: {{ refusal }}.</div>
+{% endif %}
+<p><a href="/disputes/{{ dispute.dispute_id }}">Reject (back to the dispute; nothing is sent or stored)</a></p>
+{% endblock %}

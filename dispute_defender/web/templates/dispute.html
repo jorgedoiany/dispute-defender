@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Dispute {{ dispute.dispute_id }}{% endblock %}
+{% block content %}
+<h1>Dispute {{ dispute.dispute_id }}</h1>
+<p class="muted">Read from PayPal at {{ read_at }}.</p>
+{% include "_facts.html" %}
+{% if refusal %}
+<div class="refusal">Cannot respond now: {{ refusal }}.</div>
+{% else %}
+<div class="ok">PayPal offers provide-evidence for this dispute now.</div>
+<h2>Your shipping record</h2>
+<p class="muted">Used only to check the drafted claims. Drafting makes one model call; nothing is sent.</p>
+<form method="post" action="/disputes/{{ dispute.dispute_id }}/draft">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>Tracking number <input name="tracking" required maxlength="64" pattern="[A-Za-z0-9-]{1,64}"></label>
+  <label>Carrier
+    <select name="carrier">
+      {% for c in carriers %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+    </select>
+  </label>
+  <button type="submit">Draft response</button>
+</form>
+{% endif %}
+{% endblock %}
