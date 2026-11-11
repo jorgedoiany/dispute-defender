@@ -57,7 +57,11 @@ SECURITY_HEADERS = {
         "frame-ancestors 'none'; base-uri 'none'"
     ),
     "X-Content-Type-Options": "nosniff",
-    "Referrer-Policy": "no-referrer",
+    # Not "no-referrer": with that policy browsers send `Origin: null` even on our own
+    # same-origin form posts (Fetch spec, origin serialization), and the Origin check
+    # refuses "null". With "same-origin" our own posts carry the real origin, and nothing
+    # (no Referer, a null Origin) is leaked to other sites.
+    "Referrer-Policy": "same-origin",
     "Cache-Control": "no-store",
 }
 

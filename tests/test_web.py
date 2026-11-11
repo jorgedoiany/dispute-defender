@@ -589,6 +589,67 @@ def test_same_origin_post_is_allowed(make: Any) -> None:
     assert page.status_code == 200
 
 
+def _browser_post(h: Harness, origin: str | None, *, page_origin: str = "http://127.0.0.1:8000") -> Any:
+    """A form POST as Chrome sends it from a page served at `page_origin` (exact headers)."""
+    client = TestClient(h.app, base_url=page_origin)
+    host = page_origin.split("://", 1)[1]
+    headers = {
+        "Host": host,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Referer": f"{page_origin}/disputes/{DISPUTE_ID}",
+        "Sec-Fetch-Site": "same-origin" if origin == page_origin else "cross-site",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Dest": "document",
+    }
+    if origin is not None:
+        headers["Origin"] = origin
+    data = {**FORM, "csrf": h.csrf.issue(DISPUTE_ID, "draft")}
+    return client.post(f"/disputes/{DISPUTE_ID}/draft", data=data, headers=headers)
+
+
+def test_referrer_policy_lets_browsers_send_the_real_origin_on_our_own_posts(make: Any) -> None:
+    # "no-referrer" made Chrome send `Origin: null` on same-origin form posts, which the
+    # Origin check refused (bug found in a real browser). "same-origin" keeps the origin.
+    h = make()
+    h.mocked.get(LIST_URL, json=fixture("dispute_list_empty.json"))
+    assert h.client.get("/").headers["referrer-policy"] == "same-origin"
+
+
+@pytest.mark.parametrize("page_origin", ["http://127.0.0.1:8000", "http://localhost:8000", "http://127.0.0.1:8123"])
+def test_same_origin_browser_form_post_is_accepted(make: Any, page_origin: str) -> None:
+    h = make(reply(GOOD))
+    h.dispute()
+    page = _browser_post(h, page_origin, page_origin=page_origin)
+    assert page.status_code == 200, page.text
+    assert "Draft for" in page.text and len(h.model.requests) == 1
+
+
+def test_browser_post_without_origin_still_needs_the_token(make: Any) -> None:
+    h = make(reply(GOOD))
+    h.dispute()
+    assert _browser_post(h, None).status_code == 200
+    client = TestClient(h.app, base_url="http://127.0.0.1:8000")
+    page = client.post(f"/disputes/{DISPUTE_ID}/draft", data=FORM, headers={"Host": "127.0.0.1:8000"})
+    assert page.status_code == 403
+
+
+@pytest.mark.parametrize("origin", [
+    "null",  # what a cross-site page with no-referrer, a sandboxed iframe or a data: URL sends
+    "http://evil.example",
+    "http://127.0.0.1:8001",  # other port
+    "https://127.0.0.1:8000",  # other scheme
+    "http://localhost:8000",  # other host than the one the page was served from
+    "http://127.0.0.1:8000.evil.example",
+    "http://127.0.0.1",
+    "",
+])
+def test_foreign_or_null_origin_is_still_refused(make: Any, origin: str) -> None:
+    h = make(reply(GOOD), send_mode="live")
+    page = _browser_post(h, origin)
+    assert page.status_code == 403 and "Cross-origin request refused" in page.text
+    _assert_nothing_called(h)
+
+
 @pytest.mark.parametrize("host", ["evil.example", "127.0.0.1.evil.example", "0.0.0.0", "192.168.1.10"])
 def test_untrusted_host_header_is_400(make: Any, host: str) -> None:
     h = make()
