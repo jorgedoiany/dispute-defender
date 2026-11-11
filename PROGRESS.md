@@ -203,7 +203,8 @@ T-008: README, license check and secrets scan, on branch `docs/t-008-readme`.
 - Commit 1: `README.md`. The sections are: what it is, with a headline result labelled simulated; replay mode; evaluation results (simulated); how it works; running against the sandbox; sandbox notes and limitations; Disputes API feedback; structure; license. Every evaluation number is copied from `evaluation/results.md`. The Part B per-group rows were checked to sum to 1,065 (1,192 with the merchant-record, benign and local-date cases). Code checked: Approve calls the model again (`web/app.py:274`), so the README says each Draft and each Approve is one billed call. Each feedback point names the dispute and step from this file where it was seen. Screenshot spots are HTML comment placeholders, and the video link is a TODO. No code or tests were changed.
 - Fresh-clone check (author, 2026-11-11), replay only: the author cloned `docs/t-008-readme` into a temp directory, created a venv on Python 3.14.7, ran `pip install -r requirements.txt` (no errors) and `python -m dispute_defender.web --replay`, and the disputes list loaded. The README's dispute walkthrough was not part of this check.
 - Not checked in a fresh clone: the sandbox-credentials path (`.env` from `.env.example`, dry run, live send).
-- Next: commit 2, a secrets scan of the working tree and full history, recorded here with counts and paths only. The author sets the license in GitHub About.
+- Secrets scan done (see Verification, T-008): no secrets found.
+- Next: the author sets the license in GitHub About; screenshots and the video link in the README; then the PR. The sandbox-credentials path in a fresh clone is still unchecked.
 
 ## T-010 replay mode results
 Decisions: ADR-012. Data, sources and what to type: `dispute_defender/replay/README.md`.
@@ -274,6 +275,32 @@ Checks on the committed results (2026-11-11): the raw JSONL, `results.md` and `f
 Limits (full list in `results.md`): simulated scenarios written with knowledge of the verifier's rules; one dispute reason; 24 distinct cases per model; zero observed errors does not mean a zero error rate; two models, one run window; the verifier cannot catch a wrong merchant record; nothing here says whether a response would win a dispute.
 
 ## Verification
+- T-008 secrets scan (2026-11-11). Method: gitleaks and trufflehog are not installed, so a local Python regex script outside the repo (nothing installed) printed pattern names, counts and paths only; no matched value was printed or written. Scope:
+  - The working tree: tracked files plus untracked files that are not gitignored, skipping `.venv`, `.pytest_cache` and `__pycache__`; the ignored local `.env` was read only to take the PayPal client ID and secret as literals to search for.
+  - The full history: all 54 commits on all 14 refs, including every blob reachable from them (so deleted files too) and every commit message.
+  - Commit metadata: author and committer emails.
+
+  Results:
+  | Pattern | Working tree | History | Classification |
+  |---|---|---|---|
+  | PayPal client ID / secret, literal values from `.env` | 0 | 0 | none |
+  | `PAYPAL_CLIENT_ID` / `PAYPAL_CLIENT_SECRET` assigned a 20+ character value | 1 match, `.env.example` | 4 matches, `.env.example` | False positive: the regex matched across a line break. Both values are empty in all 7 versions of `.env.example` in history; a same-line rerun gave 0 |
+  | AWS access key ID (`AKIA` / `ASIA`) | 0 | 0 | none |
+  | `aws_secret_access_key` assigned a 40-character key-like value | 0 | 0 | none |
+  | Any `aws_secret` text | 3 files | 3 files (same) | Benign. `tests/conftest.py`: the env var name, in the list of AWS variables the tests clear. `tests/test_bedrock_client.py`: the fake `"testing"` key for botocore's Stubber. `tests/test_replay_data.py`: the name inside a regex that asserts the replay data contains no secrets |
+  | Private key block | 0 | 0 | none |
+  | Bearer token (20+ characters) | 0 | 0 | none |
+  | Basic token (16+ characters) | 0 | 0 | none |
+  | Email, placeholder domain (`example.*`, `.invalid`, `.test`) | 34 matches in 31 files | 37 matches in 31 files | Benign: fake buyer and seller addresses in `evaluation/scenarios/*.json` (24), `dispute_defender/replay/data/replay.json`, `tests/fixtures/paypal/*.json` (3), `tests/conftest.py`, `tests/test_eval_scenarios.py`, `tests/test_models.py`, `tests/test_replay_data.py` |
+  | Email, other | 1, `tests/test_config.py` | 1, same | Benign: not an address. A URL with placeholder userinfo (`user:` plus a 2-letter placeholder password) in a host-guard test that must be refused |
+  | Email, co-author attribution | 0 | 84, commit messages only | Benign: the Claude co-author trailer |
+  | Email equal to the author's git `user.email` | 0 | 0 | none in file content or messages |
+  | Author's local home path (`/Users/<name>` or `/home/<name>`) | 0 | 0 | none |
+  | Author's local username | 0 | 0 | none |
+  | `.env` files ever added, on any ref | `.env.example` only | `.env.example` only | No `.env` was ever committed; `.env` is ignored and untracked |
+  | Commit metadata emails | n/a | 2 distinct | Both are noreply addresses: the author's GitHub noreply form and GitHub's merge committer address |
+
+  Not in scope: the GitHub handle in the clone URL in `README.md`. It is intentional (author decision) and was not counted as a finding.
 - T-010 (2026-11-11): `.venv/bin/python -m pytest`: 714 passed, offline, one warning (the Starlette `httpx` notice); 44 of them added in T-010. Secret scan on the working tree and git history (AWS access key IDs, AWS secret key names, AWS ARNs, 12-digit account-like numbers, and the PayPal client ID and secret from `.env` matched without printing them): no secrets; the only secret-key-name matches are the same two as in T-005. `.env` is ignored and untracked. Local replay server run with curl: see the T-010 section.
 - T-007 close (2026-11-11): `.venv/bin/python -m pytest`: 670 passed, offline, one warning (the Starlette `httpx` notice). Secret scan on the working tree (including the untracked raw results) and git history (AWS access key IDs, AWS secret key names, AWS ARNs, 12-digit account-like numbers, and the PayPal client ID and secret matched without printing them): no secrets; the only secret-key-name matches are the same two as in T-005 (`tests/conftest.py`, `tests/test_bedrock_client.py`). `.env` is ignored and untracked.
 - T-007: live Part A run by the author on 2026-11-11 with `scripts/run_evaluation.py run --confirm-spend` (144 calls, 0 errors), then `report`; see the T-007 section.

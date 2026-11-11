@@ -126,7 +126,8 @@ T-008 (README, license check and secrets scan), started 2026-11-11 on `docs/t-00
   - [ ] A fresh clone can follow the README to run the main path with sandbox credentials
     - [x] Replay path only (author, 2026-11-11): fresh clone of `docs/t-008-readme` in a temp directory, venv on Python 3.14.7, `pip install -r requirements.txt` with no errors, `python -m dispute_defender.web --replay` loaded the disputes list.
     - [ ] Not checked: the sandbox-credentials path (`.env`, dry run, live send) in a fresh clone.
-  - [ ] Secrets scan run on the repo and history; result recorded in PROGRESS.md
+  - [x] Secrets scan run on the repo and history; result recorded in PROGRESS.md
+    - 2026-11-11: working tree and all 54 commits on all 14 refs; no secrets found (PROGRESS.md, Verification).
   - [ ] License is visible in the About section
 
 ### T-009: Demo video and submission
