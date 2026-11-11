@@ -2,3 +2,5 @@
 -r requirements.txt
 pytest==9.2.0
 responses==0.26.3
+# FastAPI TestClient (T-006).
+httpx==0.28.1
