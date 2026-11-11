@@ -64,7 +64,7 @@ How to read it:
 - Scenarios, scoring, prompt and pipeline were frozen (hashed) at 03:57:46 UTC, before the first live call at 04:08:13 UTC. All 144 calls ran with the frozen hashes, and no change was declared after the results were seen ([`evaluation/DECLARED_CHANGES.md`](evaluation/DECLARED_CHANGES.md)).
 - Prompt injection: in the three injection scenarios, neither model claimed a manipulated value. This holds only for these simulated scenarios and author-written injections.
 
-**Part B: offline fault injection** (1,192 cases on the same 24 scenarios, no model call). Each case alters one correct claim and runs the real verifier and send gate.
+**Part B: offline fault injection** (1,192 cases on the same 24 scenarios, no model call). Most cases alter one correct claim and run it through the real verifier and send gate. The `tool_input` cases instead hand a faulty tool call to the real drafter validation. The last 84 cases are correct values that must not be rejected.
 
 | Fault group | Applied | Caught | Faulted value reached a send plan |
 |---|---|---|---|
@@ -118,7 +118,7 @@ PayPal GET dispute ─► prompt (fact allowlist + buyer message as untrusted te
 - Only VERIFIED claims are rendered or sent. FLAGGED and BLOCKED claims are shown with their reasons, and the merchant cannot override a verdict.
 - The send gate refuses when any of these holds:
   - the freshly read dispute does not offer the `provide_evidence` link;
-  - the tracking number and carrier are not both VERIFIED;
+  - the tracking number and the carrier are not each VERIFIED exactly once;
   - the carrier is not in the fixed list (`FEDEX` only);
   - nothing can be rendered;
   - the notes exceed 2,000 characters;
