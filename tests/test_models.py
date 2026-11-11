@@ -26,10 +26,39 @@ def test_dispute_parses_fields_used_by_the_app() -> None:
 
 
 def test_dispute_drops_buyer_details() -> None:
-    dumped = repr(Dispute.model_validate(fixture("dispute_inquiry_waiting.json")).model_dump())
-    for value in FAKE_BUYER_VALUES:
-        assert value not in dumped
-    assert "disputed_transactions" not in dumped and "messages" not in dumped
+    # Since T-005 the message text is parsed (for the drafter) but must still never
+    # appear in model_dump, model_dump_json or repr.
+    dispute = Dispute.model_validate(fixture("dispute_inquiry_waiting.json"))
+    for shown in (repr(dispute.model_dump()), dispute.model_dump_json(), repr(dispute), str(dispute)):
+        for value in FAKE_BUYER_VALUES:
+            assert value not in shown
+        assert "disputed_transactions" not in shown and "messages" not in shown
+
+
+def test_dispute_messages_are_readable_by_attribute() -> None:
+    dispute = Dispute.model_validate(fixture("dispute_inquiry_waiting.json"))
+    assert [(m.posted_by, m.content) for m in dispute.messages] == [("BUYER", "FAKE-BUYER-MESSAGE")]
+
+
+def test_dispute_message_hides_content() -> None:
+    message = Dispute.model_validate(fixture("dispute_inquiry_waiting.json")).messages[0]
+    assert "FAKE-BUYER-MESSAGE" not in repr(message)
+    assert message.model_dump() == {"posted_by": "BUYER"}
+
+
+def test_dispute_message_keeps_only_allowlisted_fields() -> None:
+    body = fixture("dispute_inquiry_waiting.json")
+    body["messages"] = [{"posted_by": "BUYER", "content": "x", "time_posted": "2026-11-09T15:00:00Z",
+                         "buyer_email": "fake-buyer@example.invalid"}]
+    message = Dispute.model_validate(body).messages[0]
+    assert set(type(message).model_fields) == {"posted_by", "content"}
+    assert not hasattr(message, "buyer_email")
+
+
+def test_dispute_without_messages_parses() -> None:
+    body = fixture("dispute_inquiry_waiting.json")
+    del body["messages"]
+    assert Dispute.model_validate(body).messages == []
 
 
 def test_dispute_parses_transaction_fields_for_verifier() -> None:
