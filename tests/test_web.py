@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import requests
 import responses
 from fastapi.testclient import TestClient
 from markupsafe import escape
@@ -670,6 +671,63 @@ def test_failed_evidence_post_shows_a_safe_error(make: Any) -> None:
     assert page.status_code == 502
     assert "HTTP 400" in page.text and "provide-evidence" in page.text
     _secret_free(page.text)
+
+
+# --- Send outcome: clear rejection (4xx) vs unknown (timeout, dropped connection, 5xx) ---
+
+
+def _approve_live_with_post(make: Any, **post: Any) -> tuple[Harness, dict[str, str], Any]:
+    h = make(reply(GOOD), reply(GOOD), reply(GOOD), send_mode="live")
+    h.dispute()
+    h.dispute()
+    h.dispute(read_back())
+    h.mocked.post(EVIDENCE_URL, **post)
+    form = approve_form(h.draft().text)
+    page = h.client.post(f"/disputes/{DISPUTE_ID}/approve", data=form)
+    return h, form, page
+
+
+def _no_automatic_retry(h: Harness, form: dict[str, str], page: Any) -> None:
+    assert f'action="/disputes/{DISPUTE_ID}/approve"' not in page.text  # no retry form offered
+    again = h.client.post(f"/disputes/{DISPUTE_ID}/approve", data=form)  # resubmit / refresh
+    assert again.status_code == 403  # the approve token was single use
+    assert len(h.evidence_posts()) == 1
+    assert len(h.model.requests) == 2
+
+
+@pytest.mark.parametrize("post", [
+    {"body": requests.exceptions.ReadTimeout()},
+    {"body": requests.exceptions.ConnectTimeout()},
+    {"body": requests.exceptions.ConnectionError()},
+    {"body": RuntimeError(f"boom {FAKE_TOKEN}")},
+    {"json": {"name": "INTERNAL_SERVICE_ERROR", "debug_id": "abc123"}, "status": 500},
+    {"json": {"name": "SERVICE_UNAVAILABLE"}, "status": 503},
+    {"body": "not json", "status": 200},
+], ids=["read-timeout", "connect-timeout", "connection-dropped", "unexpected-error", "http-500", "http-503",
+        "unreadable-2xx"])
+def test_unknown_send_outcome_says_unknown_and_never_nothing_was_sent(make: Any, post: dict[str, Any]) -> None:
+    h, form, page = _approve_live_with_post(make, **post)
+    assert page.status_code == 502
+    text = page.text
+    assert "outcome of the send is unknown" in text
+    assert "PayPal may have received the evidence" in text
+    assert "Do not retry blindly: open the dispute page and check its state first" in text
+    assert f'href="/disputes/{DISPUTE_ID}"' in text
+    assert "nothing was sent" not in text.lower() and "nothing more was done" not in text.lower()
+    assert "boom" not in text
+    _secret_free(text)
+    assert len(h.calls("GET", DISPUTE_URL)) == 2  # draft and approve reads; no read-back shown as a result
+    _no_automatic_retry(h, form, page)
+
+
+@pytest.mark.parametrize("status", [400, 403, 404, 422])
+def test_clear_rejection_keeps_the_rejected_wording(make: Any, status: int) -> None:
+    h, form, page = _approve_live_with_post(make, json=fixture("error_action_not_allowed.json"), status=status)
+    assert page.status_code == 502
+    assert "Nothing more was done" in page.text and f"HTTP {status}" in page.text
+    assert "unknown" not in page.text.lower()
+    _secret_free(page.text)
+    _no_automatic_retry(h, form, page)
 
 
 def test_rejected_draft_shows_its_safe_message(make: Any) -> None:

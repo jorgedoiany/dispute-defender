@@ -29,7 +29,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from dispute_defender.claims import MerchantOrderRecord, verify_claims
 from dispute_defender.drafter import DrafterError, ModelClient, draft_claims
-from dispute_defender.paypal import Dispute, PayPalClient, PayPalError, check_dispute_id
+from dispute_defender.paypal import Dispute, PayPalAPIError, PayPalClient, PayPalError, check_dispute_id
 from dispute_defender.response import (
     ALLOWED_CARRIERS,
     Refusal,
@@ -181,6 +181,16 @@ def create_app(
             back=f"/disputes/{dispute.dispute_id}",
         )
 
+    def unknown_outcome(dispute_id: str, detail: str) -> HTMLResponse:
+        """The send may or may not have reached PayPal. No retry is offered: the approve
+        token was single use, and this page has no form."""
+        return message(
+            502, "Send outcome unknown",
+            f"The outcome of the send is unknown ({detail}). PayPal may have received the evidence. "
+            "Do not retry blindly: open the dispute page and check its state first.",
+            back=f"/disputes/{dispute_id}",
+        )
+
     # --- routes ---
 
     @app.get("/", response_class=HTMLResponse)
@@ -241,7 +251,17 @@ def create_app(
 
         sent = False
         if live:
-            paypal.provide_evidence(did, [outcome.evidence])
+            try:
+                paypal.provide_evidence(did, [outcome.evidence])
+            except PayPalAPIError as exc:
+                if 400 <= exc.http_status < 500:
+                    raise  # PayPal clearly rejected the request: the PayPal error page
+                return unknown_outcome(did, f"{type(exc).__name__}: {exc}")
+            except PayPalError as exc:  # timeout, dropped connection, redirect, unreadable reply
+                return unknown_outcome(did, f"{type(exc).__name__}: {exc}")
+            except Exception as exc:
+                logger.error("send outcome unknown: %s", type(exc).__name__)
+                return unknown_outcome(did, type(exc).__name__)
             sent = True
 
         after = None
