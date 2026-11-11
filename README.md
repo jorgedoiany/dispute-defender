@@ -112,7 +112,7 @@ PayPal GET dispute ─► prompt (fact allowlist + buyer message as untrusted te
 **Bedrock models** (`us-east-1`, Converse API; IDs come from `BEDROCK_MODEL_ID` / `BEDROCK_MODEL_ID_SECONDARY` and are not hard-coded):
 - Primary `us.anthropic.claude-sonnet-4-6`: used by the web app ([`dispute_defender/web/__main__.py`](dispute_defender/web/__main__.py)).
 - Secondary `us.anthropic.claude-haiku-4-5-20251001-v1:0`: used in the evaluation comparison and available in the drafter smoke script.
-- **Each Draft and each Approve is one billed Bedrock call**, because Approve drafts and verifies again on the server.
+- **Each Draft and each Approve is one Bedrock call (up to 3 attempts, retried on throttling only)**, because Approve drafts and verifies again on the server.
 
 **Safety gates** (ADR-010):
 - Only VERIFIED claims are rendered or sent. FLAGGED and BLOCKED claims are shown with their reasons, and the merchant cannot override a verdict.
