@@ -4,13 +4,15 @@ Dispute Defender helps a PayPal merchant answer an "item not received" dispute. 
 
 **Flow:** Claude on Amazon Bedrock drafts structured claims → deterministic code verifies each claim against PayPal dispute data or the merchant record → the merchant reviews and approves on a local web page → the evidence is sent to the PayPal sandbox (`provide-evidence`) → the dispute's new state is read back from PayPal and shown.
 
+[![Dispute Defender after a live sandbox send: PayPal accepted the evidence and the state read back is UNDER_REVIEW. Click to watch the 1:48 demo on YouTube.](docs/images/demo-video.png)](https://youtu.be/0Uk_SduKo7w)
+
+**Demo video (1:48):** https://youtu.be/0Uk_SduKo7w. The first part shows the simulated replay mode; the second part shows a real sandbox dispute answered end to end.
+
 **Measured result (simulated data):** on 24 simulated scenarios, each model made 0 claim errors in 390 claims, and no incorrect claim was marked VERIFIED. Baseline comparison: without the verifier, 6 incorrect claims per model would have been sent, all from one simulated scenario where the merchant record belongs to another transaction (counted from the same model outputs). With the verifier, 0 reached a send plan. This is one scenario, not a rate. A wrong merchant record is not caught. See [Evaluation results](#evaluation-results-simulated-data). Accuracy on real disputes was not measured.
 
 **Live sandbox run (a single run, T-006, 2026-11-11 UTC; the evening of 2026-11-10 in the Dominican Republic):** the full path ran once end to end on sandbox dispute `PP-R-UXH-10198605`. PayPal accepted the provide-evidence call. The state read back from PayPal was `UNDER_REVIEW` at 2026-11-11 02:14:36 UTC and `WAITING_FOR_BUYER_RESPONSE` at 2026-11-11 02:19:00 UTC, with no further write call from the app (the second reading came from a Refresh, which only reads). "Accepted" means PayPal took the submission; it does not show that the evidence would win a case.
 
 First commit on 2026-11-09, after the submission period opened on 2026-10-01 (Devpost rules).
-
-<!-- SCREENSHOT: draft-page-verdicts -->
 
 ## Try it without credentials (replay mode)
 
@@ -40,10 +42,6 @@ What is simulated:
 - Everything is labelled `"simulated": true` in `dispute_defender/replay/data/replay.json`, and each dispute's sources are shown on its page. Nothing is sent anywhere and nothing is written to disk; restart the app to reset it.
 
 Details and limits: [`dispute_defender/replay/README.md`](dispute_defender/replay/README.md).
-
-<!-- SCREENSHOT: replay-n1-verified -->
-<!-- SCREENSHOT: replay-3-blocked-flagged -->
-<!-- SCREENSHOT: replay-2-refused -->
 
 ## Evaluation results (simulated data)
 
@@ -180,8 +178,6 @@ On the dispute page, enter the tracking number and carrier from your order recor
 
 Tests (offline; no credentials or network): `.venv/bin/python -m pytest`. Offline UI preview: `.venv/bin/python scripts/preview_ui.py`. Other smoke and evaluation scripts are listed in [`AGENTS.md`](AGENTS.md#commands).
 
-<!-- SCREENSHOT: live-send-readback -->
-
 ## Sandbox notes and limitations
 
 - **Sandbox only.** The app was not tested in production or with real money, and the code refuses any PayPal host other than the sandbox.
@@ -226,7 +222,7 @@ tests/         offline pytest suite and hand-written fixtures
 AGENTS.md  TASKS.md  PROGRESS.md  DECISIONS.md
 ```
 
-Demo video: TODO (T-009).
+Demo video (1:48): https://youtu.be/0Uk_SduKo7w
 
 ## License
 

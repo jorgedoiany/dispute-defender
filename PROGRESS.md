@@ -1,7 +1,7 @@
 # PROGRESS.md
 
 Last updated: 2026-11-11 (America/Santo_Domingo)
-Current task: T-008 README, license check and secrets scan (README written; secrets scan next)
+Current task: T-009 demo video and submission (video published and linked; Devpost submission pending)
 
 ## Completed
 - T-001: public repository with an MIT license. `LICENSE` and the repo guides are on `main` and `.env` is untracked (checked locally). Public visibility and the About license were confirmed by the author; `gh` was not available to check them.
@@ -204,7 +204,13 @@ T-008: README, license check and secrets scan, on branch `docs/t-008-readme`.
 - Fresh-clone check (author, 2026-11-11), replay only: the author cloned `docs/t-008-readme` into a temp directory, created a venv on Python 3.14.7, ran `pip install -r requirements.txt` (no errors) and `python -m dispute_defender.web --replay`, and the disputes list loaded. The README's dispute walkthrough was not part of this check.
 - Not checked in a fresh clone: the sandbox-credentials path (`.env` from `.env.example`, dry run, live send).
 - Secrets scan done (see Verification, T-008): no secrets found.
-- Next: the author sets the license in GitHub About; screenshots and the video link in the README; then the PR. The sandbox-credentials path in a fresh clone is still unchecked.
+- License and topics (author, 2026-11-11): GitHub About shows the license as MIT, and repository topics were set.
+- README images: one screenshot only, `docs/images/demo-video.png` (a live sandbox send, downscaled to 1400 px wide), used as the clickable link to the demo video. The `<!-- SCREENSHOT: ... -->` placeholders were removed. No other screenshots, on purpose: they are not a hackathon requirement.
+- Still open: the sandbox-credentials path in a fresh clone.
+
+T-009: demo video and submission, on branch `docs/readme-video-link`.
+- Demo video recorded and published on YouTube by the author (2026-11-11): 1:48, https://youtu.be/0Uk_SduKo7w. The first part shows the simulated replay mode; the second part shows a real sandbox dispute answered end to end. Linked in the README (section 1 and the end).
+- Not done: the final submission on Devpost. It has not been submitted.
 
 ## T-010 replay mode results
 Decisions: ADR-012. Data, sources and what to type: `dispute_defender/replay/README.md`.
@@ -330,9 +336,9 @@ Limits (full list in `results.md`): simulated scenarios written with knowledge o
 - None.
 
 ## Next steps
-1. T-008: README written (commit 1). Remaining: the secrets scan on the working tree and full history (commit 2), a fresh-clone check, screenshots and the video link in the README, the license in About (author), then the PR.
-2. T-009: demo video (under 3 minutes) and submission.
+1. T-009: complete the final submission on Devpost (author) against the official requirements checklist.
+2. T-008: the sandbox-credentials path in a fresh clone is still unchecked.
 3. Optional, only if time remains: the live prompt-injection run (T-005), T-011 (401 retry), T-012 (cosmetic fixes).
 
 ## Resume instruction
-Read AGENTS.md and TASKS.md, confirm the current state, then continue T-008 on `docs/t-008-readme` (secrets scan after the author confirms).
+Read AGENTS.md and TASKS.md, confirm the current state, then continue T-009 (Devpost submission, done by the author).

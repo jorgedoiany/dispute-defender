@@ -6,7 +6,7 @@ A merchant opens a PayPal sandbox dispute, reviews a drafted response whose ever
 Target dates: core build Nov 9-10; README, license, video and submission Nov 11 (deadline Nov 12, 12:00 PT).
 
 ## Current task
-T-008 (README, license check and secrets scan), started 2026-11-11 on `docs/t-008-readme`. README first (commit 1), then the secrets scan (commit 2). The author sets the license in the GitHub About section.
+T-009 (demo video and submission): video published and linked in the README on `docs/readme-video-link`; the final Devpost submission is still pending. T-008 has one open check: the sandbox-credentials path in a fresh clone.
 
 ## Backlog
 
@@ -128,14 +128,17 @@ T-008 (README, license check and secrets scan), started 2026-11-11 on `docs/t-00
     - [ ] Not checked: the sandbox-credentials path (`.env`, dry run, live send) in a fresh clone.
   - [x] Secrets scan run on the repo and history; result recorded in PROGRESS.md
     - 2026-11-11: working tree and all 54 commits on all 14 refs; no secrets found (PROGRESS.md, Verification).
-  - [ ] License is visible in the About section
+  - [x] License is visible in the About section
+    - Author, 2026-11-11: GitHub About shows MIT; repository topics set.
+- Images: one screenshot only (`docs/images/demo-video.png`, a live sandbox send), used as the README link to the demo video. No other screenshots, on purpose: they are not a hackathon requirement.
 
 ### T-009: Demo video and submission
 - Priority: P0
-- Status: Todo
+- Status: In progress (video published; Devpost submission pending)
 - Depends on: T-008
 - Acceptance criteria:
-  - [ ] Video under 3 minutes, public on YouTube, in English, showing the main path running
+  - [x] Video under 3 minutes, public on YouTube, in English, showing the main path running
+    - Author, 2026-11-11: recorded and published on YouTube, 1:48, https://youtu.be/0Uk_SduKo7w (first part simulated replay mode, second part a real sandbox dispute answered end to end). Linked in the README.
   - [ ] Submission fields completed against the official requirements checklist
 
 ### T-010: Replay mode for judges without credentials
