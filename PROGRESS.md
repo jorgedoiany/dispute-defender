@@ -1,7 +1,7 @@
 # PROGRESS.md
 
 Last updated: 2026-11-11 (America/Santo_Domingo)
-Current task: T-009 demo video and submission (video published and linked; Devpost submission pending)
+Current task: T-009 demo video and submission (video published and linked; Devpost submission pending). T-008 is Done.
 
 ## Completed
 - T-001: public repository with an MIT license. `LICENSE` and the repo guides are on `main` and `.env` is untracked (checked locally). Public visibility and the About license were confirmed by the author; `gh` was not available to check them.
@@ -11,6 +11,7 @@ Current task: T-009 demo video and submission (video published and linked; Devpo
 - T-005: Bedrock drafter in `dispute_defender/drafter/` (ADR-009), offline tests, and three live happy-path runs with `scripts/smoke_drafter.py`. Results below.
 - T-006: approval page and send in `dispute_defender/response/` and `dispute_defender/web/` (ADR-010), offline tests, and a live dry run and live send in Chrome on a new sandbox dispute. Results below.
 - T-007: small evaluation on 24 **simulated** scenarios (ADR-011): live Part A (144 Bedrock calls) and offline Part B (fault injection). Results below.
+- T-008: README, MIT license visible in GitHub About, secrets scan (no secrets found), and fresh-clone checks (replay path; sandbox credentials up to the dry-run disputes list). Details below.
 - T-010: replay mode (ADR-012), three simulated disputes behind the `--replay` flag. Offline tests, a local run with curl, and the author's browser check. Merged in PR #9. Results below.
 
 ## T-002 spike results
@@ -198,17 +199,17 @@ Not verified:
 - The unknown-outcome page (timeouts, dropped connections, 5xx): offline tests only.
 - Concurrent requests, and browsers other than Chrome.
 
-## In progress
-T-008: README, license check and secrets scan, on branch `docs/t-008-readme`.
+## T-008 README, license check and secrets scan (Done)
 - Commit 1: `README.md`. The sections are: what it is, with a headline result labelled simulated; replay mode; evaluation results (simulated); how it works; running against the sandbox; sandbox notes and limitations; Disputes API feedback; structure; license. Every evaluation number is copied from `evaluation/results.md`. The Part B per-group rows were checked to sum to 1,065 (1,192 with the merchant-record, benign and local-date cases). Code checked: Approve calls the model again (`web/app.py:274`), so the README says each Draft and each Approve is one billed call. Each feedback point names the dispute and step from this file where it was seen. Screenshot spots are HTML comment placeholders, and the video link is a TODO. No code or tests were changed.
 - Fresh-clone check (author, 2026-11-11), replay only: the author cloned `docs/t-008-readme` into a temp directory, created a venv on Python 3.14.7, ran `pip install -r requirements.txt` (no errors) and `python -m dispute_defender.web --replay`, and the disputes list loaded. The README's dispute walkthrough was not part of this check.
-- Not checked in a fresh clone: the sandbox-credentials path (`.env` from `.env.example`, dry run, live send).
+- Fresh-clone check with sandbox credentials (author, 2026-11-11): the author cloned the public repo into a temp directory, created a venv on Python 3.14.7, ran `pip install -r requirements-dev.txt` (no errors) and `pytest -q` (714 passed). The author copied their own `.env` into the clone instead of filling `.env.example`, started the app in dry-run mode, and the disputes list loaded from the PayPal sandbox with the Bedrock model shown. The temp directory, including the `.env` copy, was deleted afterwards.
+- Not checked in the fresh clone: Draft, Approve and a live send on a dispute. No sandbox dispute was left in `WAITING_FOR_SELLER_RESPONSE`. The live path was verified in the original working copy in T-006 and is shown in the demo video.
 - Secrets scan done (see Verification, T-008): no secrets found.
 - License and topics (author, 2026-11-11): GitHub About shows the license as MIT, and repository topics were set.
 - README images: one screenshot only, `docs/images/demo-video.png` (a live sandbox send, downscaled to 1400 px wide), used as the clickable link to the demo video. The `<!-- SCREENSHOT: ... -->` placeholders were removed. No other screenshots, on purpose: they are not a hackathon requirement.
-- Still open: the sandbox-credentials path in a fresh clone.
 
-T-009: demo video and submission, on branch `docs/readme-video-link`.
+## In progress
+T-009: demo video and submission.
 - Demo video recorded and published on YouTube by the author (2026-11-11): 1:48, https://youtu.be/0Uk_SduKo7w. The first part shows the simulated replay mode; the second part shows a real sandbox dispute answered end to end. Linked in the README (section 1 and the end).
 - Not done: the final submission on Devpost. It has not been submitted.
 
@@ -337,8 +338,7 @@ Limits (full list in `results.md`): simulated scenarios written with knowledge o
 
 ## Next steps
 1. T-009: complete the final submission on Devpost (author) against the official requirements checklist.
-2. T-008: the sandbox-credentials path in a fresh clone is still unchecked.
-3. Optional, only if time remains: the live prompt-injection run (T-005), T-011 (401 retry), T-012 (cosmetic fixes).
+2. Optional, only if time remains: the live prompt-injection run (T-005), T-011 (401 retry), T-012 (cosmetic fixes).
 
 ## Resume instruction
 Read AGENTS.md and TASKS.md, confirm the current state, then continue T-009 (Devpost submission, done by the author).
