@@ -215,6 +215,11 @@
     word-break: keep-all;
     white-space: nowrap;
   }
+  /* Draft claims table (the only table with verdict cells): type and source never break inside a word; value and reason still wrap. */
+  table:has(td.VERIFIED, td.FLAGGED, td.BLOCKED) td:nth-child(-n+2) {
+    overflow-wrap: normal;
+    white-space: nowrap;
+  }
 
   /* Pill badges with a dot */
   .VERIFIED, .FLAGGED, .BLOCKED, .status-tag {
