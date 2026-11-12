@@ -6,7 +6,7 @@ A merchant opens a PayPal sandbox dispute, reviews a drafted response whose ever
 Target dates: core build Nov 9-10; README, license, video and submission Nov 11 (deadline Nov 12, 12:00 PT).
 
 ## Current task
-T-009 (demo video and submission): video published and linked in the README on `docs/readme-video-link`; the final Devpost submission is still pending. T-008 has one open check: the sandbox-credentials path in a fresh clone.
+T-009 (demo video and submission): video published and linked in the README; the final Devpost submission is still pending. T-008 is Done.
 
 ## Backlog
 
@@ -118,14 +118,15 @@ T-009 (demo video and submission): video published and linked in the README on `
 
 ### T-008: README, license check and secrets scan
 - Priority: P0
-- Status: In progress
+- Status: Done
 - Depends on: T-006 (T-007 for the results section)
 - Acceptance criteria:
   - [x] README starts with what it does and the measured result, then setup and run steps, which PayPal sandbox and AI model are called, and known limitations
     - `README.md` written 2026-11-11; every evaluation number copied from `evaluation/results.md`, labelled simulated.
-  - [ ] A fresh clone can follow the README to run the main path with sandbox credentials
+  - [x] A fresh clone can follow the README to run the main path with sandbox credentials (scope: install, tests and dry-run start with the disputes list loaded; see the not-checked line below)
     - [x] Replay path only (author, 2026-11-11): fresh clone of `docs/t-008-readme` in a temp directory, venv on Python 3.14.7, `pip install -r requirements.txt` with no errors, `python -m dispute_defender.web --replay` loaded the disputes list.
-    - [ ] Not checked: the sandbox-credentials path (`.env`, dry run, live send) in a fresh clone.
+    - [x] Sandbox-credentials path (author, 2026-11-11): fresh clone of the public repo in a temp directory, venv on Python 3.14.7, `pip install -r requirements-dev.txt` with no errors, `pytest -q` 714 passed. The author copied their own `.env` into the clone (instead of filling `.env.example`), started the app in dry-run mode, and the disputes list loaded from the PayPal sandbox with the Bedrock model shown. The temp directory, including the `.env` copy, was deleted afterwards.
+    - Not checked in the fresh clone: Draft, Approve and a live send on a dispute, because no sandbox dispute was left in `WAITING_FOR_SELLER_RESPONSE`. The live path was verified in the original working copy in T-006 and is shown in the demo video.
   - [x] Secrets scan run on the repo and history; result recorded in PROGRESS.md
     - 2026-11-11: working tree and all 54 commits on all 14 refs; no secrets found (PROGRESS.md, Verification).
   - [x] License is visible in the About section
